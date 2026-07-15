@@ -17,13 +17,15 @@ public class UserPrincipal implements UserDetails, OAuth2User {
 
     private final Long   id;
     private final String email;
+    private final String fullName; // ADDED
     private final String password;
-    private final RoleEnum   role;
+    private final RoleEnum role;
     private Map<String, Object> attributes; // Google raw attributes
 
     private UserPrincipal(User user) {
         this.id       = user.getUserId();
         this.email    = user.getEmail();
+        this.fullName = user.getFullName(); // now has somewhere to go
         this.password = user.getPassword();
         this.role     = user.getRole();
     }
@@ -49,11 +51,10 @@ public class UserPrincipal implements UserDetails, OAuth2User {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-      return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));    }
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
 
     // OAuth2User
     @Override public Map<String, Object> getAttributes() { return attributes; }
     @Override public String getName()                    { return email; }
 }
-
-

@@ -19,15 +19,6 @@ import java.util.function.Function;
 public class JwtService {
 
     private final JwtProperties jwtProperties;
-
-    public String generateAccessToken(User user) {
-        return buildAccessToken(user.getEmail(), user.getRole().name());
-    }
-
-    public String generateAccessToken(UserPrincipal principal) {
-        return buildAccessToken(principal.getEmail(), principal.getRole().name());
-    }
-
     public String generateRefreshToken() {
         return UUID.randomUUID().toString();
     }
@@ -49,16 +40,25 @@ public class JwtService {
         return email.equals(user.getEmail()) && !isTokenExpired(token);
     }
 
-    private String buildAccessToken(String email, String role) {
+    private String buildAccessToken(String email, String role, String fullName) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
             .subject(email)
             .claim("roles", "ROLE_" + role)
+            .claim("fullName", fullName)
             .issuedAt(new Date(now))
             .expiration(new Date(now + jwtProperties.accessTokenExpiration()))
             .signWith(getSigningKey())
             .compact();
     }
+
+    public String generateAccessToken(User user) {
+    return buildAccessToken(user.getEmail(), user.getRole().name(), user.getFullName());
+}
+
+public String generateAccessToken(UserPrincipal principal) {
+    return buildAccessToken(principal.getEmail(), principal.getRole().name(), principal.getFullName());
+}
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
