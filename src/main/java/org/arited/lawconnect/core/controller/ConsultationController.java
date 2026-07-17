@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.arited.lawconnect.core.dtos.Request.ConsultationAcceptRequest;
 import org.arited.lawconnect.core.dtos.Request.ConsultationCreateRequest;
+import org.arited.lawconnect.core.dtos.Response.ConsultationAvocatSummaryResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationDetailResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationSummaryResponse;
@@ -34,7 +36,7 @@ public class ConsultationController {
             @Valid @RequestBody ConsultationCreateRequest request) {
         log.info("POST /api/v1/consultations - clientId={} avocatId={}", principal.getId(), request.getAvocatId());
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(consultationService.createConsultation(principal.getId(), request));
+                .body(consultationService.createConsultation(principal.getId(), request));
     }
 
     @GetMapping("/mes-consultations")
@@ -52,5 +54,23 @@ public class ConsultationController {
             @PathVariable Long id) {
         log.info("GET /api/v1/consultations/{} - clientId={}", id, principal.getId());
         return ResponseEntity.ok(consultationService.getConsultationDetail(principal.getId(), id));
+    }
+
+    @GetMapping("/mes-demandes")
+    @Operation(summary = "Lister les demandes de consultation reçues par l'avocat connecté")
+    public ResponseEntity<List<ConsultationAvocatSummaryResponse>> getMesDemandes(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        log.info("GET /api/v1/consultations/mes-demandes - avocatUserId={}", principal.getId());
+        return ResponseEntity.ok(consultationService.getConsultationsForAvocat(principal.getId()));
+    }
+
+    @PatchMapping("/{id}/accepter")
+    @Operation(summary = "Accepter une demande de consultation et fixer la date du rendez-vous")
+    public ResponseEntity<ConsultationResponse> accepterConsultation(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @Valid @RequestBody ConsultationAcceptRequest request) {
+        log.info("PATCH /api/v1/consultations/{}/accepter - avocatUserId={}", id, principal.getId());
+        return ResponseEntity.ok(consultationService.accepterConsultation(principal.getId(), id, request));
     }
 }

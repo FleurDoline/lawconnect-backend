@@ -65,10 +65,11 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(PUBLIC_PATHS).permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/avocats", "/api/v1/avocats/**").permitAll()
-                .anyRequest().authenticated()
-            )
+    .requestMatchers(PUBLIC_PATHS).permitAll()
+    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/avocats", "/api/v1/avocats/**").permitAll()
+    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/cities/**").permitAll()   
+    .anyRequest().authenticated()
+)
             .exceptionHandling(ex -> ex
                 .defaultAuthenticationEntryPointFor(
                     new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
@@ -125,4 +126,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/api/**", config);
         return source;
     }
+
+    
 }

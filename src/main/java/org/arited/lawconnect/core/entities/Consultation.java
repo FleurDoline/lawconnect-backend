@@ -69,6 +69,10 @@ public class Consultation {
     @Builder.Default
     private StatutConsultationEnum statut = StatutConsultationEnum.EN_ATTENTE;
 
+    private LocalDateTime dateRendezVous;
+
+    private String modeConsultation; // "visioconférence" ou "présentiel"
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

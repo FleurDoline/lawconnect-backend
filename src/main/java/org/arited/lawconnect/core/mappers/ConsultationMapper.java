@@ -1,5 +1,6 @@
 package org.arited.lawconnect.core.mappers;
 
+import org.arited.lawconnect.core.dtos.Response.ConsultationAvocatSummaryResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationDetailResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationSummaryResponse;
 import org.arited.lawconnect.core.entities.Avocat;
@@ -55,6 +56,25 @@ public class ConsultationMapper {
             .email(consultation.getEmail())
             .ville(consultation.getVille())
             .contactPreference(consultation.getContactPreference())
+            .build();
+    }
+
+    // Vue côté avocat : infos du CLIENT qui a fait la demande (pas d'infos avocat ici,
+    // puisque c'est déjà lui qui consulte sa propre liste de demandes reçues).
+    public ConsultationAvocatSummaryResponse toAvocatSummary(Consultation consultation) {
+        return ConsultationAvocatSummaryResponse.builder()
+            .id(consultation.getId())
+            .nomComplet(consultation.getNomComplet())
+            .telephone(consultation.getTelephone())
+            .email(consultation.getEmail())
+            .ville(consultation.getVille())
+            .typePersonne(consultation.getTypePersonne())
+            .mission(consultation.getMission())
+            .situation(consultation.getSituation())
+            .attentes(consultation.getAttentes())
+            .urgent(consultation.getUrgent())
+            .statut(consultation.getStatut())
+            .createdAt(consultation.getCreatedAt())
             .build();
     }
 

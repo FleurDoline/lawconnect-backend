@@ -3,7 +3,9 @@ package org.arited.lawconnect.core.services;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.arited.lawconnect.core.dtos.Request.ConsultationAcceptRequest;
 import org.arited.lawconnect.core.dtos.Request.ConsultationCreateRequest;
+import org.arited.lawconnect.core.dtos.Response.ConsultationAvocatSummaryResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationDetailResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationSummaryResponse;
@@ -17,7 +19,6 @@ import org.arited.lawconnect.core.repositories.ClientRepository;
 import org.arited.lawconnect.core.repositories.ConsultationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.arited.lawconnect.core.dtos.Response.ConsultationDetailResponse;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
@@ -88,5 +89,42 @@ public class ConsultationServiceImpl implements ConsultationService {
         }
 
         return consultationMapper.toDetail(consultation);
+    }
+
+    @Override
+    public List<ConsultationAvocatSummaryResponse> getConsultationsForAvocat(Long avocatUserId) {
+        return consultationRepository.findByAvocat_UserIdOrderByCreatedAtDesc(avocatUserId)
+            .stream()
+            .map(consultationMapper::toAvocatSummary)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public ConsultationResponse accepterConsultation(Long avocatUserId, Long consultationId, ConsultationAcceptRequest request) {
+        Consultation consultation = consultationRepository.findById(consultationId)
+            .orElseThrow(() -> new EntityNotFoundException("Consultation introuvable : " + consultationId));
+
+        if (!consultation.getAvocat().getUserId().equals(avocatUserId)) {
+            throw new AccessDeniedException("Cette consultation ne vous appartient pas");
+        }
+
+        if (consultation.getStatut() != StatutConsultationEnum.EN_ATTENTE) {
+            throw new IllegalStateException("Cette demande a déjà été traitée");
+        }
+
+        consultation.setDateRendezVous(request.dateRendezVous());
+        consultation.setModeConsultation(request.modeConsultation());
+        consultation.setStatut(StatutConsultationEnum.CONFIRMEE);
+
+        Consultation saved = consultationRepository.save(consultation);
+
+        log.info("Consultation id={} acceptée par avocatUserId={} pour le {}", saved.getId(), avocatUserId, saved.getDateRendezVous());
+
+        return ConsultationResponse.builder()
+            .id(saved.getId())
+            .statut(saved.getStatut().name())
+            .message("Rendez-vous confirmé")
+            .build();
     }
 }
