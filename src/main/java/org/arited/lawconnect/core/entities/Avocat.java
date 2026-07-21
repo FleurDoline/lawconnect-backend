@@ -36,6 +36,9 @@ public class Avocat extends User {
 
     private Integer experience;
     private String photo;
+    
+    @Column(name = "telephone")
+    private String telephone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

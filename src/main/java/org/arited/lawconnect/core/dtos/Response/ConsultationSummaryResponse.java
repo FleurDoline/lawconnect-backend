@@ -15,5 +15,8 @@ public class ConsultationSummaryResponse {
     private String avocatInitiales;
     private String specialite;
     private String date;
+    private String heure; 
     private String statut;
+    private String mode;
+    private String avocatTelephone;
 }

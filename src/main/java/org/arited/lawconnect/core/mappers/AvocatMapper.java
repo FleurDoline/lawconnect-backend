@@ -42,14 +42,14 @@ public interface AvocatMapper {
     @Mapping(target = "photo", ignore = true)
     @Mapping(target = "adresseCabinet", ignore = true)
     @Mapping(target = "ville", ignore = true)
-    @Mapping(target = "fullName", ignore = true) 
-    @Mapping(target = "provider", ignore = true) 
+    @Mapping(target = "fullName", ignore = true)
+    @Mapping(target = "provider", ignore = true)
     @Mapping(target = "providerId", ignore = true)
     @Mapping(target = "profilePicture", ignore = true)
-    @Mapping(target = "authorities", ignore = true) 
+    @Mapping(target = "authorities", ignore = true)
 
     Avocat toEntity(AvocatCreateRequest request);
- 
+
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -68,20 +68,16 @@ public interface AvocatMapper {
     @Mapping(target = "validBy", ignore = true)
     @Mapping(target = "email", ignore = true)
     @Mapping(target = "abonnements", ignore = true)
-    @Mapping(target = "specialites", ignore = true) 
-    
+    @Mapping(target = "specialites", ignore = true)
+
     void updateEntity(AvocatUpdateRequest request, @MappingTarget Avocat avocat);
 
     @Mapping(target = "id", source = "userId")
-    @Mapping(target = "nom", source = "fullName")
-    @Mapping(target = "prenom", ignore = true)
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "specialites", source = "specialites", qualifiedByName = "specialitesToNoms")
     AvocatResponse toResponse(Avocat avocat);
 
     @Mapping(target = "id", source = "userId")
-    @Mapping(target = "nom", source = "fullName")
-    @Mapping(target = "prenom", ignore = true)
     @Mapping(target = "specialites", source = "specialites", qualifiedByName = "specialitesToNoms")
     AvocatSummaryResponse toSummaryResponse(Avocat avocat);
 

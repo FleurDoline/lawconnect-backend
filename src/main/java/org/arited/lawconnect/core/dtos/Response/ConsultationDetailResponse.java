@@ -19,6 +19,7 @@ public class ConsultationDetailResponse {
     private String date;
     private String heure;
     private String statut;
+    private String mode; 
     private String flowType;
     private String eligibilite;
     private String typePersonne;
@@ -30,5 +31,6 @@ public class ConsultationDetailResponse {
     private String telephone;
     private String email;
     private String ville;
+    private String avocatTelephone;
     private String contactPreference;
 }

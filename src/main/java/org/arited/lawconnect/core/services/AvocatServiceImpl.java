@@ -23,7 +23,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.List;
 
 
@@ -82,45 +81,23 @@ public class AvocatServiceImpl implements AvocatService {
         return avocatMapper.toResponse(avocat);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<AvocatSummaryResponse> getAllAvocats(List<String> specialites, String ville, int page, int size) {
-        log.info("Fetching avocats — specialites={}, ville={}, page={}, size={}", specialites, ville, page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        
-        // Get all valid avocats first
-        Page<Avocat> avocatPage;
-        if (ville != null && !ville.trim().isEmpty()) {
-            avocatPage = avocatRepository.findByVille(ville.trim(), pageable);
-        } else {
-            avocatPage = avocatRepository.findAllValid(pageable);
-        }
-        
-        // Filter by specialty in memory if provided
-        List<AvocatSummaryResponse> filteredResults = avocatPage.getContent().stream()
-            .map(avocatMapper::toSummaryResponse)
-            .filter(avocat -> {
-                // If no specialty filter, keep all
-                if (specialites == null || specialites.isEmpty()) {
-                    return true;
-                }
-                // Check if avocat has any of the requested specialties
-                String requestedSpecialty = specialites.get(0).toLowerCase().trim();
-                return avocat.getSpecialites() != null && 
-                       avocat.getSpecialites().stream()
-                           .anyMatch(s -> s.toLowerCase().trim().equals(requestedSpecialty));
-            })
-            .collect(Collectors.toList());
-        
-        // Create new page with filtered results
-        Page<AvocatSummaryResponse> result = new PageImpl<>(
-            filteredResults,
-            pageable,
-            filteredResults.size()
-        );
-        
-        return PageResponse.of(result);
-    }
+   @Override
+   @Transactional(readOnly = true)
+    public PageResponse<AvocatSummaryResponse> getAllAvocats(
+        List<String> specialites, String ville, int page, int size) {
+
+    log.info("Fetching avocats — specialites={}, ville={}, page={}, size={}", specialites, ville, page, size);
+    Pageable pageable = PageRequest.of(page, size);
+
+    List<String> normalizedSpecialites = (specialites != null && !specialites.isEmpty()) ? specialites : null;
+    String normalizedVille = (ville != null && !ville.trim().isEmpty()) ? ville.trim() : null;
+
+    Page<Avocat> avocatPage = avocatRepository.findBySpecialitesAndVille(
+            normalizedSpecialites, normalizedVille, pageable);
+
+    Page<AvocatSummaryResponse> result = avocatPage.map(avocatMapper::toSummaryResponse);
+    return PageResponse.of(result);
+}
 
     @Override
     @Transactional(readOnly = true)

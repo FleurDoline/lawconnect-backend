@@ -6,8 +6,10 @@ import org.arited.lawconnect.core.dtos.Response.ConsultationSummaryResponse;
 import org.arited.lawconnect.core.entities.Avocat;
 import org.arited.lawconnect.core.entities.Consultation;
 import org.arited.lawconnect.core.entities.SpecialiteDroit;
+import org.arited.lawconnect.core.enums.StatutConsultationEnum;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -22,28 +24,35 @@ public class ConsultationMapper {
 
     public ConsultationSummaryResponse toSummary(Consultation consultation) {
         Avocat avocat = consultation.getAvocat();
+        LocalDateTime affichee = dateAffichee(consultation);
 
         return ConsultationSummaryResponse.builder()
             .id(consultation.getId())
             .avocatNom(avocat.getFullName())
             .avocatInitiales(initiales(avocat.getFullName()))
+            .avocatTelephone(avocat.getTelephone())
             .specialite(specialiteOf(avocat))
-            .date(consultation.getCreatedAt().format(DATE_FORMAT))
+            .date(affichee.format(DATE_FORMAT))
+            .heure(affichee.format(HEURE_FORMAT))
             .statut(consultation.getStatut().name())
+            .mode(consultation.getModeConsultation())
+            .avocatTelephone(avocat.getTelephone())
             .build();
     }
 
     public ConsultationDetailResponse toDetail(Consultation consultation) {
         Avocat avocat = consultation.getAvocat();
+        LocalDateTime affichee = dateAffichee(consultation);
 
         return ConsultationDetailResponse.builder()
             .id(consultation.getId())
             .avocatNom(avocat.getFullName())
             .avocatInitiales(initiales(avocat.getFullName()))
             .specialite(specialiteOf(avocat))
-            .date(consultation.getCreatedAt().format(DATE_FORMAT))
-            .heure(consultation.getCreatedAt().format(HEURE_FORMAT))
+            .date(affichee.format(DATE_FORMAT))
+            .heure(affichee.format(HEURE_FORMAT))
             .statut(consultation.getStatut().name())
+            .mode(consultation.getModeConsultation())
             .flowType(consultation.getFlowType())
             .eligibilite(consultation.getEligibilite())
             .typePersonne(consultation.getTypePersonne())
@@ -59,8 +68,16 @@ public class ConsultationMapper {
             .build();
     }
 
-    // Vue côté avocat : infos du CLIENT qui a fait la demande (pas d'infos avocat ici,
-    // puisque c'est déjà lui qui consulte sa propre liste de demandes reçues).
+    // Once the avocat confirms and sets a real rendez-vous, show that.
+    // Until then, there's no appointment yet — fall back to the demande date
+    // rather than pretending a slot exists.
+    private LocalDateTime dateAffichee(Consultation consultation) {
+        boolean confirmee = consultation.getStatut() == StatutConsultationEnum.CONFIRMEE;
+        return (confirmee && consultation.getDateRendezVous() != null)
+            ? consultation.getDateRendezVous()
+            : consultation.getCreatedAt();
+    }
+
     public ConsultationAvocatSummaryResponse toAvocatSummary(Consultation consultation) {
         return ConsultationAvocatSummaryResponse.builder()
             .id(consultation.getId())

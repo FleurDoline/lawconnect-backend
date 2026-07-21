@@ -21,11 +21,17 @@ public interface AvocatRepository extends JpaRepository<Avocat, Long> {
     List<Avocat> findByVille(String ville);
     List<Avocat> findByValidBy(Long adminId);
 
-    @Query("SELECT a FROM Avocat a WHERE a.statut = 'ACTIF' ORDER BY a.noteMoyenne DESC")
-    List<Avocat> findTopRatedAvocats();
+    @Query("SELECT a FROM Avocat a WHERE a.statut = 'VALIDE' ORDER BY a.noteMoyenne DESC")
+    List<Avocat> findTopRatedAvocats(Pageable pageable);
 
-    @Query("SELECT a FROM Avocat a WHERE a.statut = 'VALIDE' AND (:specialites IS NULL OR EXISTS (SELECT s FROM a.specialites s WHERE s.nom IN :specialites)) AND (:ville IS NULL OR LOWER(a.ville) = LOWER(:ville))")
-    Page<Avocat> findBySpecialitesAndVille(@Param("specialites") List<String> specialites, @Param("ville") String ville, Pageable pageable);
+    @Query("SELECT a FROM Avocat a WHERE a.statut = 'VALIDE' " +
+       "AND (:specialites IS NULL OR EXISTS (SELECT s FROM a.specialites s WHERE s.nom IN :specialites)) " +
+       "AND (:ville IS NULL OR LOWER(a.ville) = LOWER(CAST(:ville AS string)))")
+Page<Avocat> findBySpecialitesAndVille(
+    @Param("specialites") List<String> specialites,
+    @Param("ville") String ville,
+    Pageable pageable
+);
     @Query("SELECT a FROM Avocat a WHERE a.statut = 'VALIDE'")
     Page<Avocat> findAllValid(Pageable pageable);
     

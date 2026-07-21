@@ -19,6 +19,7 @@ public class AvocatSummaryResponse {
     private BigDecimal noteMoyenne;
     private String photo;
     private StatutAvocatEnum statut;
+    private String telephone;
     private String bio;
     private Integer experience;
 }
