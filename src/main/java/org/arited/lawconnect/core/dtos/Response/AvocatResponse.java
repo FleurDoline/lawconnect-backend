@@ -16,6 +16,7 @@ import org.arited.lawconnect.core.enums.StatutAvocatEnum;
 public class AvocatResponse {
     private Long id;
     private Long userId;
+    private String fullName;
     private String prenom;
     private String nom;
     private String email;
@@ -28,7 +29,7 @@ public class AvocatResponse {
     private Long validBy;
     private String lienAgenda;
 
-    private List<String> specialites; 
+    private List<String> specialites;
 
     private String carteProfessionnel;
     private String diplome;

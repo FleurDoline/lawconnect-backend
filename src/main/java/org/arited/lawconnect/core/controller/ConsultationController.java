@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.arited.lawconnect.core.dtos.Request.ConsultationAcceptRequest;
 import org.arited.lawconnect.core.dtos.Request.ConsultationCreateRequest;
 import org.arited.lawconnect.core.dtos.Response.ConsultationAvocatSummaryResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationDetailResponse;
@@ -65,12 +64,11 @@ public class ConsultationController {
     }
 
     @PatchMapping("/{id}/accepter")
-    @Operation(summary = "Accepter une demande de consultation et fixer la date du rendez-vous")
+    @Operation(summary = "Accepter une demande de consultation")
     public ResponseEntity<ConsultationResponse> accepterConsultation(
-            @AuthenticationPrincipal UserPrincipal principal,
-            @PathVariable Long id,
-            @Valid @RequestBody ConsultationAcceptRequest request) {
+          @AuthenticationPrincipal UserPrincipal principal,
+          @PathVariable Long id) {
         log.info("PATCH /api/v1/consultations/{}/accepter - avocatUserId={}", id, principal.getId());
-        return ResponseEntity.ok(consultationService.accepterConsultation(principal.getId(), id, request));
+      return ResponseEntity.ok(consultationService.accepterConsultation(principal.getId(), id));
     }
 }

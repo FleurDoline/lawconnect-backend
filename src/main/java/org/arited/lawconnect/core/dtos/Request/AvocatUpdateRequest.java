@@ -12,10 +12,11 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class AvocatUpdateRequest {
+    private String fullName;
     private String prenom;
     private String nom;
     private String telephone;
-    private List<Long> specialiteIds; 
+    private List<Long> specialiteIds;
     private String bio;
     private String lienAgenda;
     private String diplome;
