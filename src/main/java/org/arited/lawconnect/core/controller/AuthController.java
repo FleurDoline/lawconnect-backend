@@ -1,6 +1,7 @@
 package org.arited.lawconnect.core.controller;
 
 import org.arited.lawconnect.core.dtos.AuthResponseDTO;
+import org.arited.lawconnect.core.dtos.GoogleLoginRequestDTO;
 import org.arited.lawconnect.core.dtos.LoginRequestDTO;
 import org.arited.lawconnect.core.dtos.RefreshTokenRequestDTO;
 import org.arited.lawconnect.core.dtos.RegisterRequestDTO;
@@ -36,5 +37,10 @@ public class AuthController {
     public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequestDTO request) {
         authService.logout(request.refreshToken());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponseDTO> googleLogin(@Valid @RequestBody GoogleLoginRequestDTO request) {
+     return ResponseEntity.ok(authService.googleLogin(request));
     }
 }

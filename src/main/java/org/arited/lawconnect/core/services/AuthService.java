@@ -1,6 +1,7 @@
 package org.arited.lawconnect.core.services;
 
 import org.arited.lawconnect.core.dtos.AuthResponseDTO;
+import org.arited.lawconnect.core.dtos.GoogleLoginRequestDTO;
 import org.arited.lawconnect.core.dtos.LoginRequestDTO;
 import org.arited.lawconnect.core.dtos.RefreshTokenRequestDTO;
 import org.arited.lawconnect.core.dtos.RegisterRequestDTO;
@@ -24,6 +25,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import org.springframework.beans.factory.annotation.Value;
+
+import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +44,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtProperties jwtProperties;
+
+    @Value("${google.client.id}")
+    private String googleClientId;
 
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
@@ -94,6 +105,49 @@ public class AuthService {
             .orElseThrow(() -> new AppException("Refresh token introuvable", HttpStatus.NOT_FOUND));
         session.setRevoked(true);
         sessionRepository.save(session);
+    }
+
+    @Transactional
+    public AuthResponseDTO googleLogin(GoogleLoginRequestDTO request) {
+       GoogleIdToken.Payload payload = verifyGoogleToken(request.idToken());
+
+       String email = payload.getEmail();
+       String fullName = (String) payload.get("name");
+       String googleSub = payload.getSubject();
+
+      User user = userRepository.findByEmail(email)
+        .orElseGet(() -> {
+            RoleEnum role = request.role() != null ? request.role() : RoleEnum.CLIENT;
+            User newUser = newUserForRole(role);
+            newUser.setEmail(email);
+            newUser.setFullName(fullName);
+            newUser.setRole(role);
+            newUser.setProvider(AuthProvider.GOOGLE);
+            newUser.setProviderId(googleSub);
+            newUser.setActive(true);
+            return userRepository.save(newUser);
+        });
+
+       return generateTokensAndSession(user);
+    }
+
+    private GoogleIdToken.Payload verifyGoogleToken(String idTokenString) {
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken == null) {
+                throw new AppException("Token Google invalide", HttpStatus.UNAUTHORIZED);
+            }
+            return idToken.getPayload();
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AppException("Erreur de vérification du token Google", HttpStatus.UNAUTHORIZED);
+        }
     }
 
     private AuthResponseDTO generateTokensAndSession(User user) {
