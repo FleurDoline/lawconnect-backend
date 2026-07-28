@@ -12,6 +12,7 @@ import org.arited.lawconnect.core.dtos.Response.AvocatResponse;
 import org.arited.lawconnect.core.dtos.Response.AvocatSummaryResponse;
 import org.arited.lawconnect.core.entities.Avocat;
 import org.arited.lawconnect.core.entities.SpecialiteDroit;
+import org.arited.lawconnect.core.enums.DocumentTypeEnum;
 import org.arited.lawconnect.core.enums.StatutAvocatEnum;
 import org.arited.lawconnect.core.exceptions.DuplicateResourceException;
 import org.arited.lawconnect.core.exceptions.ResourceNotFoundException;
@@ -43,6 +44,8 @@ public class AvocatServiceImpl implements AvocatService {
     private final SpecialiteDroitRepository specialiteDroitRepository; 
     @Value("${app.upload.dir:uploads/photos}")
     private String uploadDir;
+    @Value("${app.upload.documents.dir:uploads/documents}")
+    private String uploadDocumentsDir;
 
     @Override
     @Transactional
@@ -233,6 +236,71 @@ public String uploadPhoto(Long id, MultipartFile file) {
 
     } catch (IOException e) {
         throw new RuntimeException("Erreur lors de l'upload de la photo", e);
+    }
+}
+
+@Override
+@Transactional
+public String uploadDocument(Long id, DocumentTypeEnum type, MultipartFile file) {
+    log.info("Uploading document type={} for avocat id={}", type, id);
+    Avocat avocat = findOrThrow(id);
+
+    if (file.isEmpty()) {
+        throw new IllegalArgumentException("Fichier vide");
+    }
+
+    String contentType = file.getContentType();
+    boolean isImage = contentType != null && contentType.startsWith("image/");
+    boolean isPdf = contentType != null && contentType.equals("application/pdf");
+    if (!isImage && !isPdf) {
+        throw new IllegalArgumentException("Le fichier doit être une image ou un PDF");
+    }
+
+    try {
+        Path uploadPath = Paths.get(uploadDocumentsDir);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String extension = getExtension(file.getOriginalFilename());
+        String filename = UUID.randomUUID() + extension;
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        String documentUrl = "/api/v1/avocats/documents/" + filename;
+
+        switch (type) {
+            case CARTE_PROFESSIONNELLE -> {
+                deleteOldDocument(uploadPath, avocat.getCarteProfessionnel());
+                avocat.setCarteProfessionnel(documentUrl);
+            }
+            case DIPLOME -> {
+                deleteOldDocument(uploadPath, avocat.getDiplome());
+                avocat.setDiplome(documentUrl);
+            }
+            case PIECE_IDENTITE -> {
+                deleteOldDocument(uploadPath, avocat.getPieceIdentite());
+                avocat.setPieceIdentite(documentUrl);
+            }
+        }
+
+        avocat.setProgression(calculateProgression(avocat));
+        avocatRepository.save(avocat);
+
+        log.info("Document {} uploaded for avocat id={} -> {}", type, id, documentUrl);
+        return documentUrl;
+
+    } catch (IOException e) {
+        throw new RuntimeException("Erreur lors de l'upload du document", e);
+    }
+}
+
+private void deleteOldDocument(Path uploadPath, String existingUrl) {
+    if (isNotBlank(existingUrl)) {
+        try {
+            Path oldFile = uploadPath.resolve(Paths.get(existingUrl).getFileName());
+            Files.deleteIfExists(oldFile);
+        } catch (Exception ignored) {}
     }
 }
 

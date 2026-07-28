@@ -11,6 +11,7 @@ import org.arited.lawconnect.core.dtos.Request.AvocatCreateRequest;
 import org.arited.lawconnect.core.dtos.Request.AvocatUpdateRequest;
 import org.arited.lawconnect.core.dtos.Response.AvocatResponse;
 import org.arited.lawconnect.core.dtos.Response.AvocatSummaryResponse;
+import org.arited.lawconnect.core.enums.DocumentTypeEnum;
 import org.arited.lawconnect.core.enums.StatutAvocatEnum;
 import org.arited.lawconnect.core.services.AvocatService;
 import org.springframework.core.io.UrlResource;
@@ -38,6 +39,8 @@ import java.util.List;
 public class AvocatController {
 
     private final AvocatService avocatService;
+    @Value("${app.upload.documents.dir:uploads/documents}")
+    private String uploadDocumentsDir;
 
     @Value("${app.upload.dir:uploads/photos}")
     private String uploadDir;
@@ -72,7 +75,7 @@ public class AvocatController {
      @RequestParam(defaultValue = "0") int page,
      @RequestParam(defaultValue = "10") int size) {
      return ResponseEntity.ok(avocatService.getAllAvocats(specialites, ville, page, size));
-  }
+}
 
     @GetMapping("/statut/{statut}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -114,39 +117,68 @@ public class AvocatController {
     }
 
     @PostMapping(value = "/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-@Operation(summary = "Uploader la photo de profil d'un avocat")
-public ResponseEntity<String> uploadPhoto(
-        @PathVariable Long id,
-        @RequestParam("file") MultipartFile file) {
-    log.info("POST /api/v1/avocats/{}/photo", id);
-    String photoUrl = avocatService.uploadPhoto(id, file);
-    return ResponseEntity.ok(photoUrl);
-}
-
-@GetMapping("/photos/{filename}")
-@Operation(summary = "Récupérer une photo de profil par nom de fichier")
-public ResponseEntity<Resource> getPhoto(@PathVariable String filename) throws IOException {
-    log.info("GET /api/v1/avocats/photos/{}", filename);
-    Path file = Paths.get(uploadDir).resolve(filename).normalize();
-
-    if (!Files.exists(file) || !file.startsWith(Paths.get(uploadDir).normalize())) {
-        return ResponseEntity.notFound().build();
+    @Operation(summary = "Uploader la photo de profil d'un avocat")
+    public ResponseEntity<String> uploadPhoto(
+          @PathVariable Long id,
+          @RequestParam("file") MultipartFile file) {
+       log.info("POST /api/v1/avocats/{}/photo", id);
+       String photoUrl = avocatService.uploadPhoto(id, file);
+       return ResponseEntity.ok(photoUrl);
     }
 
-    Resource resource = new UrlResource(file.toUri());
-    String contentType = Files.probeContentType(file);
+    @GetMapping("/photos/{filename}")
+    @Operation(summary = "Récupérer une photo de profil par nom de fichier")
+    public ResponseEntity<Resource> getPhoto(@PathVariable String filename) throws IOException {
+        log.info("GET /api/v1/avocats/photos/{}", filename);
+        Path file = Paths.get(uploadDir).resolve(filename).normalize();
 
-    return ResponseEntity.ok()
+       if (!Files.exists(file) || !file.startsWith(Paths.get(uploadDir).normalize())) {
+          return ResponseEntity.notFound().build();
+        }
+
+        Resource resource = new UrlResource(file.toUri());
+        String contentType = Files.probeContentType(file);
+
+        return ResponseEntity.ok()
+             .contentType(MediaType.parseMediaType(contentType != null ? contentType : "application/octet-stream"))
+             .body(resource);
+    }
+
+    @PostMapping(value = "/{id}/documents/{type}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Uploader un document (carte pro, diplome, piece identite)")
+    public ResponseEntity<String> uploadDocument(
+          @PathVariable Long id,
+          @PathVariable DocumentTypeEnum type,
+          @RequestParam("file") MultipartFile file) {
+       log.info("POST /api/v1/avocats/{}/documents/{}", id, type);
+       String documentUrl = avocatService.uploadDocument(id, type, file);
+       return ResponseEntity.ok(documentUrl);
+    }
+  
+    @GetMapping("/documents/{filename}")
+    @Operation(summary = "Récupérer un document par nom de fichier")
+    public ResponseEntity<Resource> getDocument(@PathVariable String filename) throws IOException {
+        log.info("GET /api/v1/avocats/documents/{}", filename);
+        Path file = Paths.get(uploadDocumentsDir).resolve(filename).normalize();
+
+        if (!Files.exists(file) || !file.startsWith(Paths.get(uploadDocumentsDir).normalize())) {
+          return ResponseEntity.notFound().build();
+        }
+
+        Resource resource = new UrlResource(file.toUri());
+        String contentType = Files.probeContentType(file);
+
+        return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(contentType != null ? contentType : "application/octet-stream"))
             .body(resource);
-}
+    }
 
-@PostMapping("/recalculer-progressions")
-@PreAuthorize("hasRole('ADMIN')")
-@Operation(summary = "Recalculer la progression de tous les avocats — usage admin ponctuel")
-public ResponseEntity<Void> recalculerToutesLesProgressions() {
-    log.info("POST /api/v1/avocats/recalculer-progressions");
-    avocatService.recalculerToutesLesProgressions();
-    return ResponseEntity.ok().build();
-}
+    @PostMapping("/recalculer-progressions")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Recalculer la progression de tous les avocats — usage admin ponctuel")
+    public ResponseEntity<Void> recalculerToutesLesProgressions() {
+        log.info("POST /api/v1/avocats/recalculer-progressions");
+        avocatService.recalculerToutesLesProgressions();
+        return ResponseEntity.ok().build();
+    }
 }
