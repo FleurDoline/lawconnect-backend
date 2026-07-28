@@ -22,8 +22,6 @@ public class Avocat extends User {
     private Long validBy;
     private String lienAgenda;
 
-    // specialite (String) removed — replaced by specialites below
-
     private String carteProfessionnel;
     private String diplome;
     private String pieceIdentite;
@@ -43,6 +41,7 @@ public class Avocat extends User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatutAvocatEnum statut = StatutAvocatEnum.EN_ATTENTE;
+    
 
     @Column(precision = 3, scale = 2)
     private BigDecimal noteMoyenne = BigDecimal.ZERO;

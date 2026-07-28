@@ -22,6 +22,12 @@ import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.UUID;
+
 import java.util.Set;
 import java.util.List;
 
@@ -35,6 +41,8 @@ public class AvocatServiceImpl implements AvocatService {
     private final AvocatMapper avocatMapper;
     private final PasswordEncoder passwordEncoder;
     private final SpecialiteDroitRepository specialiteDroitRepository; 
+    @Value("${app.upload.dir:uploads/photos}")
+    private String uploadDir;
 
     @Override
     @Transactional
@@ -159,23 +167,91 @@ public class AvocatServiceImpl implements AvocatService {
                     "Avocat introuvable avec id=" + id
                 ));
     }
+    // 16 criteres pour un profil complet, chacun valant 100/16 ≈ 6.25%
+private int calculateProgression(Avocat avocat) {
+    int totalCriteres = 16;
+    int rempli = 0;
 
-    // 10 profile fields, each worth 10% = 100% max
-    private int calculateProgression(Avocat avocat) {
-        int score = 0;
-        if (avocat.getSpecialites() != null && !avocat.getSpecialites().isEmpty()) score += 10;
-        if (isNotBlank(avocat.getBio()))              score += 10;
-        if (isNotBlank(avocat.getPhoto()))            score += 10;
-        if (isNotBlank(avocat.getAdresseCabinet()))   score += 10;
-        if (isNotBlank(avocat.getVille()))            score += 10;
-        if (avocat.getTarif() != null)                score += 10;
-        if (avocat.getExperience() != null)           score += 10;
-        if (isNotBlank(avocat.getDiplome()))          score += 10;
-        if (isNotBlank(avocat.getCarteProfessionnel())) score += 10;
-        return score;
-    }
+    if (isNotBlank(avocat.getPrenom()))              rempli++;
+    if (isNotBlank(avocat.getNom()))                 rempli++;
+    if (isNotBlank(avocat.getEmail()))                rempli++;
+    if (isNotBlank(avocat.getPassword()))            rempli++;
+    if (isNotBlank(avocat.getPhoto()))                rempli++;
+    if (avocat.getSpecialites() != null && !avocat.getSpecialites().isEmpty()) rempli++;
+    if (isNotBlank(avocat.getBio()))                  rempli++;
+    if (isNotBlank(avocat.getAdresseCabinet()))       rempli++;
+    if (isNotBlank(avocat.getVille()))                rempli++;
+    if (avocat.getExperience() != null)                rempli++;
+    if (isNotBlank(avocat.getDiplome()))              rempli++;
+    if (isNotBlank(avocat.getCarteProfessionnel()))   rempli++;
+    if (isNotBlank(avocat.getLienAgenda()))           rempli++;
+    if (isNotBlank(avocat.getPieceIdentite()))        rempli++;
+    if (isNotBlank(avocat.getTelephone()))            rempli++;
+    if (avocat.getStatut() == StatutAvocatEnum.VALIDE) rempli++;
+
+    return Math.round((rempli * 100f) / totalCriteres);
+}
 
     private boolean isNotBlank(String value) {
         return value != null && !value.isBlank();
     }
+
+    @Override
+@Transactional
+public String uploadPhoto(Long id, MultipartFile file) {
+    log.info("Uploading photo for avocat id={}", id);
+    Avocat avocat = findOrThrow(id);
+
+    if (file.isEmpty() || file.getContentType() == null || !file.getContentType().startsWith("image/")) {
+        throw new IllegalArgumentException("Le fichier doit être une image valide");
+    }
+
+    try {
+        Path uploadPath = Paths.get(uploadDir);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String extension = getExtension(file.getOriginalFilename());
+        String filename = UUID.randomUUID() + extension;
+        Path filePath = uploadPath.resolve(filename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        // Supprimer l'ancienne photo si elle existe
+        if (isNotBlank(avocat.getPhoto())) {
+            Path oldFile = uploadPath.resolve(Paths.get(avocat.getPhoto()).getFileName());
+            Files.deleteIfExists(oldFile);
+        }
+
+        String photoUrl = "/api/v1/avocats/photos/" + filename;
+        avocat.setPhoto(photoUrl);
+        avocat.setProgression(calculateProgression(avocat));
+        avocatRepository.save(avocat);
+
+        log.info("Photo uploaded for avocat id={} -> {}", id, photoUrl);
+        return photoUrl;
+
+    } catch (IOException e) {
+        throw new RuntimeException("Erreur lors de l'upload de la photo", e);
+    }
+}
+
+private String getExtension(String filename) {
+    if (filename == null || !filename.contains(".")) return "";
+    return filename.substring(filename.lastIndexOf("."));
+}
+
+@Override
+@Transactional
+public void recalculerToutesLesProgressions() {
+    log.info("Recalcul de la progression pour tous les avocats");
+    List<Avocat> tousLesAvocats = avocatRepository.findAll();
+
+    for (Avocat avocat : tousLesAvocats) {
+        avocat.setProgression(calculateProgression(avocat));
+    }
+
+    avocatRepository.saveAll(tousLesAvocats);
+    log.info("Progression recalculee pour {} avocats", tousLesAvocats.size());
+}
 }
