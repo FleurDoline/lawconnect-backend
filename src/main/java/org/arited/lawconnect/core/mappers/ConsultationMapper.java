@@ -27,17 +27,18 @@ public class ConsultationMapper {
         LocalDateTime affichee = dateAffichee(consultation);
 
         return ConsultationSummaryResponse.builder()
-            .id(consultation.getId())
-            .avocatNom(avocat.getFullName())
-            .avocatInitiales(initiales(avocat.getFullName()))
-            .avocatTelephone(avocat.getTelephone())
-            .specialite(specialiteOf(avocat))
-            .date(affichee.format(DATE_FORMAT))
-            .heure(affichee.format(HEURE_FORMAT))
-            .statut(consultation.getStatut().name())
-            .mode(consultation.getModeConsultation())
-            .avocatTelephone(avocat.getTelephone())
-            .build();
+         .id(consultation.getId())
+         .avocatNom(avocat.getFullName())
+         .avocatInitiales(initiales(avocat.getFullName()))
+         .avocatTelephone(avocat.getTelephone())
+         .specialite(specialiteOf(avocat))
+         .date(affichee.format(DATE_FORMAT))
+         .heure(affichee.format(HEURE_FORMAT))
+         .statut(consultation.getStatut().name())
+         .mode(consultation.getModeConsultation())
+         .avocatTelephone(avocat.getTelephone())
+         .dateAfficheeIso(affichee.toString())
+         .build();
     }
 
     public ConsultationDetailResponse toDetail(Consultation consultation) {

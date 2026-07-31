@@ -22,6 +22,15 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.arited.lawconnect.core.entities.Disponibilite;
+import org.arited.lawconnect.core.repositories.DisponibiliteRepository;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -33,43 +42,59 @@ public class ConsultationServiceImpl implements ConsultationService {
     private final ClientRepository clientRepository;
     private final ConsultationMapper consultationMapper;
     private final EmailService emailService;
+    private final DisponibiliteRepository disponibiliteRepository;
 
     @Override
-    @Transactional
-    public ConsultationResponse createConsultation(Long clientId, ConsultationCreateRequest request) {
-        Client client = clientRepository.findById(clientId)
-            .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + clientId));
+@Transactional
+public ConsultationResponse createConsultation(Long clientId, ConsultationCreateRequest request) {
+    Client client = clientRepository.findById(clientId)
+        .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + clientId));
 
-        Avocat avocat = avocatRepository.findById(request.getAvocatId())
-            .orElseThrow(() -> new EntityNotFoundException("Avocat introuvable : " + request.getAvocatId()));
+    Avocat avocat = avocatRepository.findById(request.getAvocatId())
+        .orElseThrow(() -> new EntityNotFoundException("Avocat introuvable : " + request.getAvocatId()));
 
-        Consultation consultation = new Consultation();
-        consultation.setClient(client);
-        consultation.setAvocat(avocat);
-        consultation.setFlowType(request.getFlowType());
-        consultation.setEligibilite(request.getEligibilite());
-        consultation.setTypePersonne(request.getTypePersonne());
-        consultation.setMission(request.getMission());
-        consultation.setAttentes(request.getAttentes());
-        consultation.setUrgent(request.getUrgent());
-        consultation.setSituation(request.getSituation());
-        consultation.setNomComplet(request.getNomComplet());
-        consultation.setTelephone(request.getTelephone());
-        consultation.setEmail(request.getEmail());
-        consultation.setVille(request.getVille());
-        consultation.setContactPreference(request.getContactPreference());
-        consultation.setStatut(StatutConsultationEnum.EN_ATTENTE);
+    // Validation : le créneau demandé doit faire partie des créneaux encore libres
+    LocalDate dateDemandee = request.getDateRendezVous().toLocalDate();
+    LocalTime heureDemandee = request.getDateRendezVous().toLocalTime();
 
-        Consultation saved = consultationRepository.save(consultation);
+    List<LocalTime> creneauxLibres = getCreneauxDisponibles(avocat.getUserId(), dateDemandee);
 
-        log.info("Consultation créée id={} client={} avocat={}", saved.getId(), clientId, avocat.getUserId());
-
-        return ConsultationResponse.builder()
-            .id(saved.getId())
-            .statut(saved.getStatut().name())
-            .message("Votre demande a bien été transmise à Maître " + avocat.getFullName())
-            .build();
+    if (!creneauxLibres.contains(heureDemandee)) {
+        throw new IllegalStateException(
+            "Ce créneau n'est plus disponible. Merci d'en choisir un autre."
+        );
     }
+
+    Consultation consultation = new Consultation();
+    consultation.setClient(client);
+    consultation.setAvocat(avocat);
+    consultation.setFlowType(request.getFlowType());
+    consultation.setEligibilite(request.getEligibilite());
+    consultation.setTypePersonne(request.getTypePersonne());
+    consultation.setMission(request.getMission());
+    consultation.setAttentes(request.getAttentes());
+    consultation.setUrgent(request.getUrgent());
+    consultation.setSituation(request.getSituation());
+    consultation.setNomComplet(request.getNomComplet());
+    consultation.setTelephone(request.getTelephone());
+    consultation.setEmail(request.getEmail());
+    consultation.setVille(request.getVille());
+    consultation.setContactPreference(request.getContactPreference());
+    consultation.setDateRendezVous(request.getDateRendezVous());
+    consultation.setModeConsultation(request.getModeConsultation());
+    consultation.setStatut(StatutConsultationEnum.EN_ATTENTE);
+
+    Consultation saved = consultationRepository.save(consultation);
+
+    log.info("Consultation créée id={} client={} avocat={} dateRendezVous={}",
+            saved.getId(), clientId, avocat.getUserId(), saved.getDateRendezVous());
+
+    return ConsultationResponse.builder()
+        .id(saved.getId())
+        .statut(saved.getStatut().name())
+        .message("Votre demande a bien été transmise à Maître " + avocat.getFullName())
+        .build();
+}
 
     @Override
     public List<ConsultationSummaryResponse> getConsultationsForClient(Long clientId) {
@@ -100,8 +125,8 @@ public class ConsultationServiceImpl implements ConsultationService {
     }
 
     @Override
-@Transactional
-public ConsultationResponse accepterConsultation(Long avocatUserId, Long consultationId) {
+    @Transactional
+    public ConsultationResponse accepterConsultation(Long avocatUserId, Long consultationId) {
     Consultation consultation = consultationRepository.findById(consultationId)
         .orElseThrow(() -> new EntityNotFoundException("Consultation introuvable : " + consultationId));
 
@@ -115,16 +140,27 @@ public ConsultationResponse accepterConsultation(Long avocatUserId, Long consult
         throw new IllegalStateException("Cette demande a déjà été traitée");
     }
 
+    consultation.setStatut(StatutConsultationEnum.CONFIRMEE);
+Consultation saved = consultationRepository.save(consultation);
+
+log.info("Consultation id={} acceptée par avocatUserId={}", saved.getId(), avocatUserId);
+
+boolean utiliseCreneauNatif = saved.getDateRendezVous() != null;
+
+if (utiliseCreneauNatif) {
+    emailService.sendConfirmationCreneauNatif(
+        saved.getEmail(),
+        saved.getNomComplet(),
+        avocat.getFullName(),
+        saved.getDateRendezVous(),
+        saved.getModeConsultation()
+    );
+} else {
     if (avocat.getLienAgenda() == null || avocat.getLienAgenda().isBlank()) {
         throw new IllegalStateException(
             "Veuillez configurer votre lien d'agenda dans Paramètres avant d'accepter une demande."
         );
     }
-
-    consultation.setStatut(StatutConsultationEnum.CONFIRMEE);
-    Consultation saved = consultationRepository.save(consultation);
-
-    log.info("Consultation id={} acceptée par avocatUserId={}", saved.getId(), avocatUserId);
 
     emailService.sendLienAgenda(
         saved.getEmail(),
@@ -132,11 +168,52 @@ public ConsultationResponse accepterConsultation(Long avocatUserId, Long consult
         avocat.getFullName(),
         avocat.getLienAgenda()
     );
-
-    return ConsultationResponse.builder()
-        .id(saved.getId())
-        .statut(saved.getStatut().name())
-        .message("Rendez-vous accepté, un email a été envoyé au client")
-        .build();
 }
+
+return ConsultationResponse.builder()
+    .id(saved.getId())
+    .statut(saved.getStatut().name())
+    .message("Rendez-vous accepté, un email a été envoyé au client")
+    .build();
+    }
+
+    @Override
+    public List<LocalTime> getCreneauxDisponibles(Long avocatId, LocalDate date) {
+    DayOfWeek jour = date.getDayOfWeek();
+
+    Disponibilite dispo = disponibiliteRepository
+            .findByAvocatIdAndJour(avocatId, jour)
+            .orElse(null);
+
+    if (dispo == null) {
+        return List.of();
+    }
+
+    List<LocalTime> creneauxGeneres = new ArrayList<>();
+    LocalTime heureCourante = dispo.getHeureDebut();
+
+    while (!heureCourante.plusHours(1).isAfter(dispo.getHeureFin())) {
+        if (!heureCourante.equals(LocalTime.of(12, 0))) {
+            creneauxGeneres.add(heureCourante);
+        }
+        heureCourante = heureCourante.plusHours(1);
+    }
+
+    LocalDateTime debutJournee = date.atStartOfDay();
+    LocalDateTime finJournee = date.atTime(23, 59, 59);
+
+    List<Consultation> consultationsExistantes = consultationRepository
+            .findByAvocatIdAndDateRendezVousBetweenAndStatutIn(
+                    avocatId, debutJournee, finJournee,
+                    List.of(StatutConsultationEnum.EN_ATTENTE, StatutConsultationEnum.CONFIRMEE)
+            );
+
+    Set<LocalTime> heuresPrises = consultationsExistantes.stream()
+            .map(c -> c.getDateRendezVous().toLocalTime())
+            .collect(Collectors.toSet());
+
+    return creneauxGeneres.stream()
+            .filter(c -> !heuresPrises.contains(c))
+            .toList();
+    }
 }

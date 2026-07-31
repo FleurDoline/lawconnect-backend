@@ -100,7 +100,9 @@ public class AvocatServiceImpl implements AvocatService {
     log.info("Fetching avocats — specialites={}, ville={}, page={}, size={}", specialites, ville, page, size);
     Pageable pageable = PageRequest.of(page, size);
 
-    List<String> normalizedSpecialites = (specialites != null && !specialites.isEmpty()) ? specialites : null;
+    List<String> normalizedSpecialites = (specialites != null && !specialites.isEmpty())
+        ? specialites.stream().map(String::toLowerCase).toList()
+        : null;
     String normalizedVille = (ville != null && !ville.trim().isEmpty()) ? ville.trim() : null;
 
     Page<Avocat> avocatPage = avocatRepository.findBySpecialitesAndVille(

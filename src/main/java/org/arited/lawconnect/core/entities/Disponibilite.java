@@ -8,7 +8,13 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "disponibilites")
+@Table(
+    name = "disponibilites",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_disponibilite_avocat_jour",
+        columnNames = {"avocat_id", "jour"}
+    )
+)
 @Getter
 @Setter
 public class Disponibilite {

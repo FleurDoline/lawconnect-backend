@@ -12,11 +12,14 @@ import org.arited.lawconnect.core.dtos.Response.ConsultationResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationSummaryResponse;
 import org.arited.lawconnect.core.services.ConsultationService;
 import org.arited.lawconnect.security.models.UserPrincipal;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Slf4j
@@ -70,5 +73,14 @@ public class ConsultationController {
           @PathVariable Long id) {
         log.info("PATCH /api/v1/consultations/{}/accepter - avocatUserId={}", id, principal.getId());
       return ResponseEntity.ok(consultationService.accepterConsultation(principal.getId(), id));
+    }
+
+    @GetMapping("/avocats/{avocatId}/creneaux-disponibles")
+    @Operation(summary = "Lister les créneaux disponibles d'un avocat pour une date donnée")
+    public ResponseEntity<List<LocalTime>> getCreneauxDisponibles(
+         @PathVariable Long avocatId,
+         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+     log.info("GET /api/v1/consultations/avocats/{}/creneaux-disponibles?date={}", avocatId, date);
+     return ResponseEntity.ok(consultationService.getCreneauxDisponibles(avocatId, date));
     }
 }

@@ -6,6 +6,8 @@ import org.arited.lawconnect.core.dtos.Response.ConsultationDetailResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationResponse;
 import org.arited.lawconnect.core.dtos.Response.ConsultationSummaryResponse;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 public interface ConsultationService {
@@ -18,4 +20,6 @@ public interface ConsultationService {
 
     /** Accepter une demande de consultation et fixer la date/heure/mode du rendez-vous */
     ConsultationResponse accepterConsultation(Long avocatUserId, Long consultationId);
+
+    List<LocalTime> getCreneauxDisponibles(Long avocatId, LocalDate date);
 }

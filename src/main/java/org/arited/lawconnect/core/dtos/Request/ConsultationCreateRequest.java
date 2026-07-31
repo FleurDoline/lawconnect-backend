@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -43,4 +44,10 @@ public class ConsultationCreateRequest {
     private String ville;
 
     private String contactPreference;
+
+    @NotNull(message = "Veuillez choisir une date et une heure de rendez-vous")
+    private LocalDateTime dateRendezVous;
+
+    @NotBlank(message = "Veuillez choisir un mode de consultation")
+    private String modeConsultation; // "visioconférence", "téléphone", ou "présentiel"
 }
