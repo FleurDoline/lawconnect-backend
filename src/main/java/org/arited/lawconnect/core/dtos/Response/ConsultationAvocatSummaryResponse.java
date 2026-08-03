@@ -26,4 +26,6 @@ public class ConsultationAvocatSummaryResponse {
     private String urgent;
     private StatutConsultationEnum statut;
     private LocalDateTime createdAt;
+    private LocalDateTime dateRendezVous;
+    private String modeConsultation;
 }

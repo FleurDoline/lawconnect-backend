@@ -80,20 +80,22 @@ public class ConsultationMapper {
     }
 
     public ConsultationAvocatSummaryResponse toAvocatSummary(Consultation consultation) {
-        return ConsultationAvocatSummaryResponse.builder()
-            .id(consultation.getId())
-            .nomComplet(consultation.getNomComplet())
-            .telephone(consultation.getTelephone())
-            .email(consultation.getEmail())
-            .ville(consultation.getVille())
-            .typePersonne(consultation.getTypePersonne())
-            .mission(consultation.getMission())
-            .situation(consultation.getSituation())
-            .attentes(consultation.getAttentes())
-            .urgent(consultation.getUrgent())
-            .statut(consultation.getStatut())
-            .createdAt(consultation.getCreatedAt())
-            .build();
+      return ConsultationAvocatSummaryResponse.builder()
+        .id(consultation.getId())
+        .nomComplet(consultation.getNomComplet())
+        .telephone(consultation.getTelephone())
+        .email(consultation.getEmail())
+        .ville(consultation.getVille())
+        .typePersonne(consultation.getTypePersonne())
+        .mission(consultation.getMission())
+        .situation(consultation.getSituation())
+        .attentes(consultation.getAttentes())
+        .urgent(consultation.getUrgent())
+        .statut(consultation.getStatut())
+        .createdAt(consultation.getCreatedAt())
+        .dateRendezVous(consultation.getDateRendezVous())
+        .modeConsultation(consultation.getModeConsultation())
+        .build();
     }
 
     private String specialiteOf(Avocat avocat) {
