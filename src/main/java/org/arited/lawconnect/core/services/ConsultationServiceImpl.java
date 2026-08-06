@@ -45,56 +45,56 @@ public class ConsultationServiceImpl implements ConsultationService {
     private final DisponibiliteRepository disponibiliteRepository;
 
     @Override
-@Transactional
-public ConsultationResponse createConsultation(Long clientId, ConsultationCreateRequest request) {
-    Client client = clientRepository.findById(clientId)
+    @Transactional
+    public ConsultationResponse createConsultation(Long clientId, ConsultationCreateRequest request) {
+      Client client = clientRepository.findById(clientId)
         .orElseThrow(() -> new EntityNotFoundException("Client introuvable : " + clientId));
 
-    Avocat avocat = avocatRepository.findById(request.getAvocatId())
+      Avocat avocat = avocatRepository.findById(request.getAvocatId())
         .orElseThrow(() -> new EntityNotFoundException("Avocat introuvable : " + request.getAvocatId()));
 
-    // Validation : le créneau demandé doit faire partie des créneaux encore libres
-    LocalDate dateDemandee = request.getDateRendezVous().toLocalDate();
-    LocalTime heureDemandee = request.getDateRendezVous().toLocalTime();
+      // Validation : le créneau demandé doit faire partie des créneaux encore libres
+      LocalDate dateDemandee = request.getDateRendezVous().toLocalDate();
+      LocalTime heureDemandee = request.getDateRendezVous().toLocalTime();
 
-    List<LocalTime> creneauxLibres = getCreneauxDisponibles(avocat.getUserId(), dateDemandee);
+      List<LocalTime> creneauxLibres = getCreneauxDisponibles(avocat.getUserId(), dateDemandee);
 
-    if (!creneauxLibres.contains(heureDemandee)) {
-        throw new IllegalStateException(
+      if (!creneauxLibres.contains(heureDemandee)) {
+         throw new IllegalStateException(
             "Ce créneau n'est plus disponible. Merci d'en choisir un autre."
-        );
-    }
+         );
+      }
 
-    Consultation consultation = new Consultation();
-    consultation.setClient(client);
-    consultation.setAvocat(avocat);
-    consultation.setFlowType(request.getFlowType());
-    consultation.setEligibilite(request.getEligibilite());
-    consultation.setTypePersonne(request.getTypePersonne());
-    consultation.setMission(request.getMission());
-    consultation.setAttentes(request.getAttentes());
-    consultation.setUrgent(request.getUrgent());
-    consultation.setSituation(request.getSituation());
-    consultation.setNomComplet(request.getNomComplet());
-    consultation.setTelephone(request.getTelephone());
-    consultation.setEmail(request.getEmail());
-    consultation.setVille(request.getVille());
-    consultation.setContactPreference(request.getContactPreference());
-    consultation.setDateRendezVous(request.getDateRendezVous());
-    consultation.setModeConsultation(request.getModeConsultation());
-    consultation.setStatut(StatutConsultationEnum.EN_ATTENTE);
+      Consultation consultation = new Consultation();
+      consultation.setClient(client);
+      consultation.setAvocat(avocat);
+      consultation.setFlowType(request.getFlowType());
+      consultation.setEligibilite(request.getEligibilite());
+      consultation.setTypePersonne(request.getTypePersonne());
+      consultation.setMission(request.getMission());
+      consultation.setAttentes(request.getAttentes());
+      consultation.setUrgent(request.getUrgent());
+      consultation.setSituation(request.getSituation());
+      consultation.setNomComplet(request.getNomComplet());
+      consultation.setTelephone(request.getTelephone());
+      consultation.setEmail(request.getEmail());
+      consultation.setVille(request.getVille());
+      consultation.setContactPreference(request.getContactPreference());
+      consultation.setDateRendezVous(request.getDateRendezVous());
+      consultation.setModeConsultation(request.getModeConsultation());
+      consultation.setStatut(StatutConsultationEnum.EN_ATTENTE);
 
-    Consultation saved = consultationRepository.save(consultation);
+      Consultation saved = consultationRepository.save(consultation);
 
-    log.info("Consultation créée id={} client={} avocat={} dateRendezVous={}",
+      log.info("Consultation créée id={} client={} avocat={} dateRendezVous={}",
             saved.getId(), clientId, avocat.getUserId(), saved.getDateRendezVous());
 
-    return ConsultationResponse.builder()
+      return ConsultationResponse.builder()
         .id(saved.getId())
         .statut(saved.getStatut().name())
         .message("Votre demande a bien été transmise à Maître " + avocat.getFullName())
         .build();
-}
+    }
 
     @Override
     public List<ConsultationSummaryResponse> getConsultationsForClient(Long clientId) {
@@ -125,56 +125,93 @@ public ConsultationResponse createConsultation(Long clientId, ConsultationCreate
     }
 
     @Override
+    public List<ConsultationAvocatSummaryResponse> getProchainsRendezVous(Long avocatUserId) {
+    return consultationRepository
+        .findProchainsRendezVous(avocatUserId, StatutConsultationEnum.CONFIRMEE, LocalDateTime.now())
+        .stream()
+        .map(consultationMapper::toAvocatSummary)
+        .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public ConsultationResponse accepterConsultation(Long avocatUserId, Long consultationId) {
+      Consultation consultation = consultationRepository.findById(consultationId)
+          .orElseThrow(() -> new EntityNotFoundException("Consultation introuvable : " + consultationId));
+
+      Avocat avocat = consultation.getAvocat();
+
+      if (!avocat.getUserId().equals(avocatUserId)) {
+         throw new AccessDeniedException("Cette consultation ne vous appartient pas");
+       }
+
+       if (consultation.getStatut() != StatutConsultationEnum.EN_ATTENTE) {
+          throw new IllegalStateException("Cette demande a déjà été traitée");
+        }
+
+       consultation.setStatut(StatutConsultationEnum.CONFIRMEE);
+       Consultation saved = consultationRepository.save(consultation);
+
+        log.info("Consultation id={} acceptée par avocatUserId={}", saved.getId(), avocatUserId);
+
+        boolean utiliseCreneauNatif = saved.getDateRendezVous() != null;
+
+       if (utiliseCreneauNatif) {
+        emailService.sendConfirmationCreneauNatif(
+          saved.getEmail(),
+          saved.getNomComplet(),
+          avocat.getFullName(),
+          saved.getDateRendezVous(),
+          saved.getModeConsultation()
+        );
+      } else {
+          if (avocat.getLienAgenda() == null || avocat.getLienAgenda().isBlank()) {
+             throw new IllegalStateException(
+              "Veuillez configurer votre lien d'agenda dans Paramètres avant d'accepter une demande."
+            );
+          }
+
+          emailService.sendLienAgenda(
+            saved.getEmail(),
+            saved.getNomComplet(),
+            avocat.getFullName(),
+            avocat.getLienAgenda()
+          );
+       }
+
+       return ConsultationResponse.builder()
+         .id(saved.getId())
+         .statut(saved.getStatut().name())
+         .message("Rendez-vous accepté, un email a été envoyé au client")
+         .build();
+    }
+
+    @Override
+    @Transactional
+    public ConsultationResponse refuserConsultation(Long clientId, Long consultationId) {
     Consultation consultation = consultationRepository.findById(consultationId)
         .orElseThrow(() -> new EntityNotFoundException("Consultation introuvable : " + consultationId));
 
-    Avocat avocat = consultation.getAvocat();
+       if (!consultation.getClient().getUserId().equals(clientId)) {
+         throw new AccessDeniedException("Cette consultation ne vous appartient pas");
+       }
 
-    if (!avocat.getUserId().equals(avocatUserId)) {
-        throw new AccessDeniedException("Cette consultation ne vous appartient pas");
-    }
+       if (consultation.getStatut() != StatutConsultationEnum.EN_ATTENTE) {
+          throw new IllegalStateException(
+            "Cette demande ne peut plus être annulée, elle a déjà été traitée."
+          );
+        }
 
-    if (consultation.getStatut() != StatutConsultationEnum.EN_ATTENTE) {
-        throw new IllegalStateException("Cette demande a déjà été traitée");
-    }
+        consultation.setStatut(StatutConsultationEnum.ANNULEE);
+        Consultation saved = consultationRepository.save(consultation);
 
-    consultation.setStatut(StatutConsultationEnum.CONFIRMEE);
-Consultation saved = consultationRepository.save(consultation);
+        log.info("Consultation id={} annulée par clientId={}", saved.getId(), clientId);
 
-log.info("Consultation id={} acceptée par avocatUserId={}", saved.getId(), avocatUserId);
-
-boolean utiliseCreneauNatif = saved.getDateRendezVous() != null;
-
-if (utiliseCreneauNatif) {
-    emailService.sendConfirmationCreneauNatif(
-        saved.getEmail(),
-        saved.getNomComplet(),
-        avocat.getFullName(),
-        saved.getDateRendezVous(),
-        saved.getModeConsultation()
-    );
-} else {
-    if (avocat.getLienAgenda() == null || avocat.getLienAgenda().isBlank()) {
-        throw new IllegalStateException(
-            "Veuillez configurer votre lien d'agenda dans Paramètres avant d'accepter une demande."
-        );
-    }
-
-    emailService.sendLienAgenda(
-        saved.getEmail(),
-        saved.getNomComplet(),
-        avocat.getFullName(),
-        avocat.getLienAgenda()
-    );
-}
-
-return ConsultationResponse.builder()
-    .id(saved.getId())
-    .statut(saved.getStatut().name())
-    .message("Rendez-vous accepté, un email a été envoyé au client")
-    .build();
+        return ConsultationResponse.builder()
+        .id(saved.getId())
+        .statut(saved.getStatut().name())
+        .message("Votre demande de consultation a été annulée")
+        .build();
     }
 
     @Override
@@ -215,5 +252,5 @@ return ConsultationResponse.builder()
     return creneauxGeneres.stream()
             .filter(c -> !heuresPrises.contains(c))
             .toList();
-    }
+    }   
 }

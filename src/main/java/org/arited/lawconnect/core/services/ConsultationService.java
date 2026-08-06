@@ -18,8 +18,14 @@ public interface ConsultationService {
     /** Demandes de consultation reçues par l'avocat connecté (userId de l'avocat) */
     List<ConsultationAvocatSummaryResponse> getConsultationsForAvocat(Long avocatUserId);
 
+    /** Prochain(s) rendez-vous confirmé(s) et à venir pour l'avocat connecté, triés par date croissante */
+    List<ConsultationAvocatSummaryResponse> getProchainsRendezVous(Long avocatUserId);
+
     /** Accepter une demande de consultation et fixer la date/heure/mode du rendez-vous */
     ConsultationResponse accepterConsultation(Long avocatUserId, Long consultationId);
 
     List<LocalTime> getCreneauxDisponibles(Long avocatId, LocalDate date);
+
+    /** Le client annule/refuse sa propre demande, uniquement si elle est encore EN_ATTENTE */
+    ConsultationResponse refuserConsultation(Long clientId, Long consultationId);
 }

@@ -28,4 +28,14 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
             @Param("fin") LocalDateTime fin,
             @Param("statuts") List<StatutConsultationEnum> statuts
     );
+
+    @Query("SELECT c FROM Consultation c WHERE c.avocat.userId = :avocatId " +
+         "AND c.statut = :statut " +
+         "AND c.dateRendezVous > :now " +
+         "ORDER BY c.dateRendezVous ASC")
+    List<Consultation> findProchainsRendezVous(
+        @Param("avocatId") Long avocatId,
+        @Param("statut") StatutConsultationEnum statut,
+        @Param("now") LocalDateTime now
+   );
 }

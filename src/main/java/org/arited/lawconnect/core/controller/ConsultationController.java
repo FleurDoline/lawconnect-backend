@@ -66,6 +66,14 @@ public class ConsultationController {
         return ResponseEntity.ok(consultationService.getConsultationsForAvocat(principal.getId()));
     }
 
+    @GetMapping("/prochains-rendez-vous")
+    @Operation(summary = "Lister les prochains rendez-vous confirmés et à venir de l'avocat connecté")
+    public ResponseEntity<List<ConsultationAvocatSummaryResponse>> getProchainsRendezVous(
+          @AuthenticationPrincipal UserPrincipal principal) {
+       log.info("GET /api/v1/consultations/prochains-rendez-vous - avocatUserId={}", principal.getId());
+       return ResponseEntity.ok(consultationService.getProchainsRendezVous(principal.getId()));
+    }
+
     @PatchMapping("/{id}/accepter")
     @Operation(summary = "Accepter une demande de consultation")
     public ResponseEntity<ConsultationResponse> accepterConsultation(
@@ -82,5 +90,14 @@ public class ConsultationController {
          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
      log.info("GET /api/v1/consultations/avocats/{}/creneaux-disponibles?date={}", avocatId, date);
      return ResponseEntity.ok(consultationService.getCreneauxDisponibles(avocatId, date));
+    }
+
+    @PatchMapping("/{id}/refuser")
+    @Operation(summary = "Le client annule sa propre demande de consultation (tant qu'elle est EN_ATTENTE)")
+    public ResponseEntity<ConsultationResponse> refuserConsultation(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable Long id) {
+     log.info("PATCH /api/v1/consultations/{}/refuser - clientId={}", id, principal.getId());
+     return ResponseEntity.ok(consultationService.refuserConsultation(principal.getId(), id));
     }
 }
