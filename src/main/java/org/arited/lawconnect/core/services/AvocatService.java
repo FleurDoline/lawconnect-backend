@@ -2,6 +2,7 @@ package org.arited.lawconnect.core.services;
 import org.arited.lawconnect.core.dtos.Pagination.PageResponse;
 import org.arited.lawconnect.core.dtos.Request.AvocatCreateRequest;
 import org.arited.lawconnect.core.dtos.Request.AvocatUpdateRequest;
+import org.arited.lawconnect.core.dtos.Response.AdminStatsResponse;
 import org.arited.lawconnect.core.dtos.Response.AvocatResponse;
 import org.arited.lawconnect.core.dtos.Response.AvocatSummaryResponse;
 import org.arited.lawconnect.core.enums.DocumentTypeEnum;
@@ -23,4 +24,6 @@ public interface AvocatService {
     String uploadPhoto(Long id, MultipartFile file);
     void recalculerToutesLesProgressions();
     String uploadDocument(Long id, DocumentTypeEnum type, MultipartFile file);
+    void recalculerProgression(Long avocatId);
+    AdminStatsResponse getStats();
 }

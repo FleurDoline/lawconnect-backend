@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/abonnements")
+@RequestMapping("/api/v1/abonnements")
 @RequiredArgsConstructor
 @Tag(name = "Abonnement", description = "Endpoints de gestion des abonnements")
 public class AbonnementController {

@@ -9,8 +9,10 @@ import org.arited.lawconnect.core.dtos.Pagination.PageResponse;
 import org.arited.lawconnect.core.dtos.Request.AdminCreateRequest;
 import org.arited.lawconnect.core.dtos.Request.AdminUpdateRequest;
 import org.arited.lawconnect.core.dtos.Response.AdminResponse;
+import org.arited.lawconnect.core.dtos.Response.AdminStatsResponse;
 import org.arited.lawconnect.core.enums.AccesEnum;
 import org.arited.lawconnect.core.services.AdminService;
+import org.arited.lawconnect.core.services.AvocatService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,10 +25,11 @@ import java.util.List;
 @RequestMapping("/api/v1/admins")
 @RequiredArgsConstructor
 @Tag(name = "Admins", description = "Gestion des comptes administrateurs")
-@PreAuthorize("hasRole('ADMIN')") // every endpoint here requires an existing admin
+@PreAuthorize("hasRole('ADMIN')") 
 public class AdminController {
 
     private final AdminService adminService;
+    private final AvocatService avocatService; 
 
     @PostMapping
     @Operation(summary = "Créer un compte admin", description = "Réservé aux administrateurs existants")
@@ -81,5 +84,12 @@ public class AdminController {
         log.info("DELETE /api/v1/admins/{}", id);
         adminService.deleteAdmin(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/stats")
+    @Operation(summary = "Statistiques du dashboard admin")
+    public ResponseEntity<AdminStatsResponse> getStats() {
+      log.info("GET /api/v1/admins/stats");
+      return ResponseEntity.ok(avocatService.getStats());
     }
 }

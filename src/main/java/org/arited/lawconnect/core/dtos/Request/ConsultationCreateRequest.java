@@ -45,7 +45,9 @@ public class ConsultationCreateRequest {
 
     private String contactPreference;
 
-    @NotNull(message = "Veuillez choisir une date et une heure de rendez-vous")
+    // Optionnel : uniquement requis si l'avocat gère ses créneaux sur la plateforme.
+    // La validation conditionnelle (obligatoire ou non selon l'avocat) est faite
+    // dans ConsultationServiceImpl.createConsultation().
     private LocalDateTime dateRendezVous;
 
     @NotBlank(message = "Veuillez choisir un mode de consultation")

@@ -34,6 +34,7 @@ public class AbonnementServiceImpl implements AbonnementService {
     private final AbonnementRepository abonnementRepository;
     private final AvocatRepository avocatRepository;
     private final AbonnementMapper abonnementMapper;
+    private final AvocatService avocatService;
 
     @Override
     @Transactional
@@ -44,8 +45,10 @@ public class AbonnementServiceImpl implements AbonnementService {
         Avocat avocat = avocatRepository.findById(request.getAvocatId())
                 .orElseThrow(() -> new AppException("Avocat non trouvé avec l'ID: " + request.getAvocatId(), HttpStatus.NOT_FOUND));
 
-        // Vérifier que la référence est unique
-        if (abonnementRepository.existsByReference(request.getReference())) {
+        // Générer une référence si non fournie, sinon vérifier son unicité
+        if (request.getReference() == null || request.getReference().isBlank()) {
+            request.setReference(generateReference());
+        } else if (abonnementRepository.existsByReference(request.getReference())) {
             throw new AppException("La référence '" + request.getReference() + "' existe déjà", HttpStatus.CONFLICT);
         }
 
@@ -163,6 +166,10 @@ public class AbonnementServiceImpl implements AbonnementService {
         }
 
         Abonnement updatedAbonnement = abonnementRepository.save(abonnement);
+
+        // Le statut PAYE / non-PAYE influence le critère "abonnement actif" de la progression du profil
+        avocatService.recalculerProgression(updatedAbonnement.getAvocat().getUserId());
+
         log.info("Statut de l'abonnement {} mis à jour avec succès", reference);
 
         return abonnementMapper.toResponse(updatedAbonnement);
@@ -244,6 +251,9 @@ public class AbonnementServiceImpl implements AbonnementService {
         abonnement.setDeletedAt(Instant.now());
         abonnementRepository.save(abonnement);
 
+        // Peut faire retomber le critère "abonnement actif" si c'était le PAYE en cours
+        avocatService.recalculerProgression(abonnement.getAvocat().getUserId());
+
         log.info("Abonnement {} supprimé logiquement avec succès", reference);
     }
 
@@ -292,5 +302,16 @@ public class AbonnementServiceImpl implements AbonnementService {
             case TRIMESTRIEL -> 3;
             case ANNUEL -> 12;
         };
+    }
+
+    /**
+     * Génère une référence unique pour un nouvel abonnement (ex: ABN-4F9C21A0)
+     */
+    private String generateReference() {
+        String reference;
+        do {
+            reference = "ABN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        } while (abonnementRepository.existsByReference(reference));
+        return reference;
     }
 }

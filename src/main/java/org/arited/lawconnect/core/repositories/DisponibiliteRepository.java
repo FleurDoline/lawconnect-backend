@@ -22,4 +22,9 @@ public interface DisponibiliteRepository extends JpaRepository<Disponibilite, Lo
 
     @Query("SELECT d FROM Disponibilite d WHERE d.avocat.userId = :avocatId")
     List<Disponibilite> findByAvocatId(@Param("avocatId") Long avocatId);
+    
+    @Query("SELECT COUNT(d) > 0 FROM Disponibilite d WHERE d.avocat.userId = :avocatId")
+    boolean existsByAvocat_UserId(@Param("avocatId") Long avocatId);
+    
 }
+

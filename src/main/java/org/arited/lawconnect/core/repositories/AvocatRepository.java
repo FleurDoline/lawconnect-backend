@@ -37,4 +37,6 @@ public interface AvocatRepository extends JpaRepository<Avocat, Long> {
     
     @Query("SELECT a FROM Avocat a WHERE a.statut = 'VALIDE' AND LOWER(a.ville) = LOWER(:ville)")
     Page<Avocat> findByVille(@Param("ville") String ville, Pageable pageable);
+
+    long countByStatut(StatutAvocatEnum statut);
 }

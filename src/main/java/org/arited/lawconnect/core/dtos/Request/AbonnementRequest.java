@@ -1,7 +1,6 @@
 package org.arited.lawconnect.core.dtos.Request;
 
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -18,7 +17,7 @@ import org.arited.lawconnect.core.enums.FormuleEnum;
 @Builder
 public class AbonnementRequest {
 
-    @NotBlank(message = "La référence est obligatoire")
+    // Générée côté serveur si non fournie (voir AbonnementServiceImpl.generateReference)
     private String reference;
 
     @NotNull(message = "La formule est obligatoire")

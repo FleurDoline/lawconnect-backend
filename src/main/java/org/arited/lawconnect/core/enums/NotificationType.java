@@ -1,0 +1,12 @@
+package org.arited.lawconnect.core.enums;
+
+public enum NotificationType {
+    CONSULTATION_CREEE,
+    CONSULTATION_ACCEPTEE,
+    CONSULTATION_REFUSEE,
+    CONSULTATION_CONFIRMEE,
+    CONSULTATION_TERMINEE,
+    CONSULTATION_ANNULEE,
+    MESSAGE_RECU,
+    SYSTEME
+}

@@ -22,4 +22,8 @@ public class AvocatSummaryResponse {
     private String telephone;
     private String bio;
     private Integer experience;
+    private boolean gereDisponibilites;
+    private String carteProfessionnel;
+    private String diplome;
+    private String pieceIdentite;
 }

@@ -53,16 +53,33 @@ public class ConsultationServiceImpl implements ConsultationService {
       Avocat avocat = avocatRepository.findById(request.getAvocatId())
         .orElseThrow(() -> new EntityNotFoundException("Avocat introuvable : " + request.getAvocatId()));
 
-      // Validation : le créneau demandé doit faire partie des créneaux encore libres
-      LocalDate dateDemandee = request.getDateRendezVous().toLocalDate();
-      LocalTime heureDemandee = request.getDateRendezVous().toLocalTime();
+      boolean gereDisponibilites = disponibiliteRepository.existsByAvocat_UserId(avocat.getUserId());
 
-      List<LocalTime> creneauxLibres = getCreneauxDisponibles(avocat.getUserId(), dateDemandee);
+      if (gereDisponibilites) {
+          // L'avocat gère ses créneaux sur la plateforme : une date/heure valide est obligatoire
+          if (request.getDateRendezVous() == null) {
+              throw new IllegalStateException(
+                  "Veuillez choisir un créneau parmi les disponibilités de cet avocat."
+              );
+          }
 
-      if (!creneauxLibres.contains(heureDemandee)) {
-         throw new IllegalStateException(
-            "Ce créneau n'est plus disponible. Merci d'en choisir un autre."
-         );
+          LocalDate dateDemandee = request.getDateRendezVous().toLocalDate();
+          LocalTime heureDemandee = request.getDateRendezVous().toLocalTime();
+
+          List<LocalTime> creneauxLibres = getCreneauxDisponibles(avocat.getUserId(), dateDemandee);
+
+          if (!creneauxLibres.contains(heureDemandee)) {
+              throw new IllegalStateException(
+                  "Ce créneau n'est plus disponible. Merci d'en choisir un autre."
+              );
+          }
+      } else {
+          // L'avocat gère son agenda en externe : il doit avoir configuré son lien
+          if (avocat.getLienAgenda() == null || avocat.getLienAgenda().isBlank()) {
+              throw new IllegalStateException(
+                  "Cet avocat n'a pas encore configuré son agenda. Merci de réessayer plus tard."
+              );
+          }
       }
 
       Consultation consultation = new Consultation();
@@ -80,7 +97,7 @@ public class ConsultationServiceImpl implements ConsultationService {
       consultation.setEmail(request.getEmail());
       consultation.setVille(request.getVille());
       consultation.setContactPreference(request.getContactPreference());
-      consultation.setDateRendezVous(request.getDateRendezVous());
+      consultation.setDateRendezVous(gereDisponibilites ? request.getDateRendezVous() : null);
       consultation.setModeConsultation(request.getModeConsultation());
       consultation.setStatut(StatutConsultationEnum.EN_ATTENTE);
 
