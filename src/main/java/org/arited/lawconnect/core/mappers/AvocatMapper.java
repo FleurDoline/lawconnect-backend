@@ -32,7 +32,7 @@ public interface AvocatMapper {
     @Mapping(target = "validBy", ignore = true)
     @Mapping(target = "abonnements", ignore = true)
     @Mapping(target = "lienAgenda", ignore = true)
-    @Mapping(target = "specialites", ignore = true) // was "specialite" — set separately in the service
+    @Mapping(target = "specialites", ignore = true) 
     @Mapping(target = "carteProfessionnel", ignore = true)
     @Mapping(target = "diplome", ignore = true)
     @Mapping(target = "pieceIdentite", ignore = true)

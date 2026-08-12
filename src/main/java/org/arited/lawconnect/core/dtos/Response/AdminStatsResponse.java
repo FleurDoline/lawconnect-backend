@@ -12,4 +12,5 @@ public class AdminStatsResponse {
     private long avocatsValides;
     private long avocatsEnAttente;
     private double tauxConversion; // avocatsValides / totalAvocats * 100, arrondi 1 décimale
+    private long abonnementsActifs;
 }

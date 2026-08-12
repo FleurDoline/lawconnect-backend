@@ -14,10 +14,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Structure for all error responses
     private record ErrorResponse(int status, String error, Object message, LocalDateTime timestamp) {}
 
-    // 404 - Resource not found
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -25,7 +23,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 409 - Duplicate resource (email, userId already exists)
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicate(DuplicateResourceException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
@@ -33,7 +30,13 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 400 - @Valid validation failures (field-level errors)
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(
+            new ErrorResponse(ex.getStatus().value(), ex.getStatus().getReasonPhrase(), ex.getMessage(), LocalDateTime.now())
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();
@@ -45,7 +48,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 500 - Any uncaught exception
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(

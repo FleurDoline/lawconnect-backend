@@ -26,4 +26,6 @@ public interface AbonnementRepository extends JpaRepository<Abonnement, Long> {
     List<Abonnement> findByProchainRenouvellementBefore(LocalDate date);
 
     Optional<Abonnement> findByAvocatUserIdAndStatut(Long avocatUserId, StatutPaiementEnum statut);
+
+    long countByStatut(StatutPaiementEnum statut);
 }

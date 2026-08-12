@@ -9,4 +9,5 @@ public interface EmailService {
         String toEmail, String clientNom, String avocatNom,
         LocalDateTime dateRendezVous, String modeConsultation
     );
+    void sendOtpEmail(String toEmail, String prenom, String otp);
 }

@@ -14,8 +14,11 @@ public record RegisterRequestDTO(
     @Size(min = 6, message = "Le mot de passe doit faire au moins 6 caractères")
     String password,
 
-    @NotBlank(message = "Le nom complet est obligatoire")
-    String fullName,
+    @NotBlank(message = "Le prénom est obligatoire")
+    String prenom,
+
+    @NotBlank(message = "Le nom est obligatoire")
+    String nom,
 
     RoleEnum role
 ) {}

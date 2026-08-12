@@ -8,6 +8,8 @@ import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -48,6 +50,15 @@ public class User extends BaseEntity implements UserDetails {
 
     @Column(name = "provider_id")
     private String providerId;
+
+    @Column(name = "email_verified")
+    private boolean emailVerified = false;
+
+   @Column(name = "otp_code")
+   private String otpCode;
+
+   @Column(name = "otp_expiry")
+   private LocalDateTime otpExpiry;
 
     @Column(name = "profile_picture")
     private String profilePicture;

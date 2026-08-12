@@ -5,6 +5,7 @@ import org.arited.lawconnect.core.dtos.GoogleLoginRequestDTO;
 import org.arited.lawconnect.core.dtos.LoginRequestDTO;
 import org.arited.lawconnect.core.dtos.RefreshTokenRequestDTO;
 import org.arited.lawconnect.core.dtos.RegisterRequestDTO;
+import org.arited.lawconnect.core.dtos.RegisterResponseDTO;
 import org.arited.lawconnect.core.entities.Admin;
 import org.arited.lawconnect.core.entities.Avocat;
 import org.arited.lawconnect.core.entities.Client;
@@ -44,30 +45,51 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtProperties jwtProperties;
+    private final OtpService otpService; 
 
     @Value("${google.client.id}")
     private String googleClientId;
 
     @Transactional
-    public AuthResponseDTO register(RegisterRequestDTO request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new AppException("Un compte avec cet email existe déjà", HttpStatus.BAD_REQUEST);
-        }
+public RegisterResponseDTO register(RegisterRequestDTO request) {
+  userRepository.findByEmail(request.email()).ifPresent(existingUser -> {
+    if (existingUser.isEmailVerified()) {
+      throw new AppException("Un compte avec cet email existe déjà", HttpStatus.BAD_REQUEST);
+    }
+    // Compte fantôme jamais vérifié : on le supprime pour repartir sur une inscription propre
+    userRepository.delete(existingUser);
+    userRepository.flush();
+  });
 
-        RoleEnum role = request.role() != null ? request.role() : RoleEnum.CLIENT;
-        User user = newUserForRole(role);
-        user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
-        user.setFullName(request.fullName());
-        user.setRole(role);
-        user.setProvider(AuthProvider.LOCAL);
-        user.setActive(true);
+  RoleEnum role = request.role() != null ? request.role() : RoleEnum.CLIENT;
+  User user = newUserForRole(role);
+  user.setEmail(request.email());
+  user.setPassword(passwordEncoder.encode(request.password()));
+  user.setPrenom(request.prenom());
+  user.setNom(request.nom());
+  user.setFullName(request.prenom() + " " + request.nom());
+  user.setRole(role);
+  user.setProvider(AuthProvider.LOCAL);
+  user.setActive(true);
+  user.setEmailVerified(false);
 
-        user = userRepository.save(user);
+  user = userRepository.save(user);
+  otpService.generateAndSendOtp(user);
 
-        return generateTokensAndSession(user);
+  return new RegisterResponseDTO(user.getEmail(), "Un code de vérification a été envoyé à votre adresse email");
+}
+    @Transactional
+    public AuthResponseDTO verifyOtp(String email, String code) {
+       otpService.verifyOtp(email, code);
+       User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new AppException("Utilisateur introuvable", HttpStatus.NOT_FOUND));
+      return generateTokensAndSession(user);
     }
 
+    @Transactional
+    public void resendOtp(String email) {
+      otpService.resendOtp(email);
+    }
     private User newUserForRole(RoleEnum role) {
         return switch (role) {
             case CLIENT -> new Client();
@@ -78,11 +100,16 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDTO login(LoginRequestDTO request) {
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.email(), request.password()));
-        User user = userRepository.findByEmail(request.email())
-            .orElseThrow(() -> new AppException("Utilisateur introuvable", HttpStatus.NOT_FOUND));
-        return generateTokensAndSession(user);
+      authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+      User user = userRepository.findByEmail(request.email())
+        .orElseThrow(() -> new AppException("Utilisateur introuvable", HttpStatus.NOT_FOUND));
+
+      if (!user.isEmailVerified()) {
+        throw new AppException("Veuillez vérifier votre email avant de vous connecter", HttpStatus.FORBIDDEN);
+      }
+
+     return generateTokensAndSession(user);
     }
 
     @Transactional
@@ -109,27 +136,44 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDTO googleLogin(GoogleLoginRequestDTO request) {
-       GoogleIdToken.Payload payload = verifyGoogleToken(request.idToken());
+      GoogleIdToken.Payload payload = verifyGoogleToken(request.idToken());
 
        String email = payload.getEmail();
        String fullName = (String) payload.get("name");
+       String givenName = (String) payload.get("given_name");
+       String familyName = (String) payload.get("family_name");
        String googleSub = payload.getSubject();
 
-      User user = userRepository.findByEmail(email)
+       User user = userRepository.findByEmail(email)
         .orElseGet(() -> {
-            RoleEnum role = request.role() != null ? request.role() : RoleEnum.CLIENT;
-            User newUser = newUserForRole(role);
-            newUser.setEmail(email);
-            newUser.setFullName(fullName);
-            newUser.setRole(role);
-            newUser.setProvider(AuthProvider.GOOGLE);
-            newUser.setProviderId(googleSub);
-            newUser.setActive(true);
-            return userRepository.save(newUser);
+          RoleEnum role = request.role() != null ? request.role() : RoleEnum.CLIENT;
+          User newUser = newUserForRole(role);
+          newUser.setEmail(email);
+          newUser.setFullName(fullName);
+          newUser.setPrenom(givenName != null ? givenName : splitFirst(fullName));
+          newUser.setNom(familyName != null ? familyName : splitRest(fullName));
+          newUser.setRole(role);
+          newUser.setProvider(AuthProvider.GOOGLE);
+          newUser.setProviderId(googleSub);
+          newUser.setActive(true);
+          newUser.setEmailVerified(true);
+          return userRepository.save(newUser);
+
         });
 
-       return generateTokensAndSession(user);
+         return generateTokensAndSession(user);
     }
+
+  private String splitFirst(String fullName) {
+    if (fullName == null || fullName.isBlank()) return "";
+    return fullName.trim().split("\\s+", 2)[0];
+  }
+
+  private String splitRest(String fullName) {
+    if (fullName == null || fullName.isBlank()) return "";
+    String[] parts = fullName.trim().split("\\s+", 2);
+    return parts.length > 1 ? parts[1] : "";
+   }
 
     private GoogleIdToken.Payload verifyGoogleToken(String idTokenString) {
         try {

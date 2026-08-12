@@ -162,21 +162,33 @@ public class AvocatServiceImpl implements AvocatService {
     }
 
     @Override
-    @Transactional
-    public AvocatResponse updateStatut(Long id, StatutAvocatEnum statut) {
-       log.info("Updating statut of avocat id={} to {}", id, statut);
-       Avocat avocat = findOrThrow(id);
-       avocat.setStatut(statut);
+@Transactional
+public AvocatResponse updateStatut(Long id, StatutAvocatEnum statut) {
+   log.info("Updating statut of avocat id={} to {}", id, statut);
+   Avocat avocat = findOrThrow(id);
 
-       // Traçabilité : qui a validé/rejeté, et quand
-       if (statut == StatutAvocatEnum.VALIDE || statut == StatutAvocatEnum.REJETE) {
-        Long adminId = getCurrentUserId();
-        avocat.setValidBy(adminId);
-        avocat.setValidAt(java.time.LocalDate.now());
-      }
- 
-      return avocatMapper.toResponse(avocatRepository.save(avocat));
-    }
+   if (statut == StatutAvocatEnum.VALIDE && !hasAuMoinsUnDocument(avocat)) {
+       throw new IllegalStateException(
+           "Impossible de valider un avocat sans document fourni (diplôme, carte professionnelle ou pièce d'identité)"
+       );
+   }
+
+   avocat.setStatut(statut);
+
+   if (statut == StatutAvocatEnum.VALIDE || statut == StatutAvocatEnum.REJETE) {
+    Long adminId = getCurrentUserId();
+    avocat.setValidBy(adminId);
+    avocat.setValidAt(java.time.LocalDate.now());
+  }
+
+  return avocatMapper.toResponse(avocatRepository.save(avocat));
+}
+
+private boolean hasAuMoinsUnDocument(Avocat avocat) {
+    return isNotBlank(avocat.getDiplome())
+        || isNotBlank(avocat.getCarteProfessionnel())
+        || isNotBlank(avocat.getPieceIdentite());
+}
 
     private Long getCurrentUserId() {
       Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -386,12 +398,14 @@ public AdminStatsResponse getStats() {
     long valides = avocatRepository.countByStatut(StatutAvocatEnum.VALIDE);
     long enAttente = avocatRepository.countByStatut(StatutAvocatEnum.EN_ATTENTE);
     double taux = total > 0 ? Math.round((valides * 1000.0 / total)) / 10.0 : 0.0;
+    long abonnementsActifs = abonnementRepository.countByStatut(StatutPaiementEnum.PAYE);
 
     return AdminStatsResponse.builder()
         .totalAvocats(total)
         .avocatsValides(valides)
         .avocatsEnAttente(enAttente)
         .tauxConversion(taux)
+        .abonnementsActifs(abonnementsActifs)
         .build();
 }
 }
