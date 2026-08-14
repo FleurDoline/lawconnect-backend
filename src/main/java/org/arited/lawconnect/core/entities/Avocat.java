@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.arited.lawconnect.core.enums.StatutAvocatEnum;
+import org.arited.lawconnect.core.enums.TypePieceIdentiteEnum;
 
 @Entity
 @Table(name = "avocats")
@@ -24,7 +25,12 @@ public class Avocat extends User {
 
     private String carteProfessionnel;
     private String diplome;
-    private String pieceIdentite;
+
+    @Enumerated(EnumType.STRING)
+    private TypePieceIdentiteEnum typePieceIdentite;
+
+    private String pieceIdentiteRecto;
+    private String pieceIdentiteVerso;
 
     @Column(columnDefinition = "TEXT")
     private String bio;

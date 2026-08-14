@@ -13,6 +13,7 @@ import org.arited.lawconnect.core.dtos.Response.AvocatResponse;
 import org.arited.lawconnect.core.dtos.Response.AvocatSummaryResponse;
 import org.arited.lawconnect.core.enums.DocumentTypeEnum;
 import org.arited.lawconnect.core.enums.StatutAvocatEnum;
+import org.arited.lawconnect.core.enums.TypePieceIdentiteEnum;
 import org.arited.lawconnect.core.services.AvocatService;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
@@ -145,13 +146,14 @@ public class AvocatController {
     }
 
     @PostMapping(value = "/{id}/documents/{type}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Uploader un document (carte pro, diplome, piece identite)")
+    @Operation(summary = "Uploader un document (carte pro, diplome, piece identite recto/verso)")
     public ResponseEntity<String> uploadDocument(
           @PathVariable Long id,
           @PathVariable DocumentTypeEnum type,
+          @RequestParam(value = "typePiece", required = false) TypePieceIdentiteEnum typePiece,
           @RequestParam("file") MultipartFile file) {
-       log.info("POST /api/v1/avocats/{}/documents/{}", id, type);
-       String documentUrl = avocatService.uploadDocument(id, type, file);
+       log.info("POST /api/v1/avocats/{}/documents/{}?typePiece={}", id, type, typePiece);
+       String documentUrl = avocatService.uploadDocument(id, type, typePiece, file);
        return ResponseEntity.ok(documentUrl);
     }
   

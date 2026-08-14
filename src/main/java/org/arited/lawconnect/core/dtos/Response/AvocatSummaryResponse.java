@@ -3,6 +3,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.List;
 import org.arited.lawconnect.core.enums.StatutAvocatEnum;
+import org.arited.lawconnect.core.enums.TypePieceIdentiteEnum;
 
 @Getter
 @Setter
@@ -25,5 +26,7 @@ public class AvocatSummaryResponse {
     private boolean gereDisponibilites;
     private String carteProfessionnel;
     private String diplome;
-    private String pieceIdentite;
+    private TypePieceIdentiteEnum typePieceIdentite;
+    private String pieceIdentiteRecto;
+    private String pieceIdentiteVerso;
 }

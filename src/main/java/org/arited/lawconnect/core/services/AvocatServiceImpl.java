@@ -16,6 +16,7 @@ import org.arited.lawconnect.core.entities.SpecialiteDroit;
 import org.arited.lawconnect.core.enums.DocumentTypeEnum;
 import org.arited.lawconnect.core.enums.StatutAvocatEnum;
 import org.arited.lawconnect.core.enums.StatutPaiementEnum;
+import org.arited.lawconnect.core.enums.TypePieceIdentiteEnum;
 import org.arited.lawconnect.core.exceptions.DuplicateResourceException;
 import org.arited.lawconnect.core.exceptions.ResourceNotFoundException;
 import org.arited.lawconnect.core.mappers.AvocatMapper;
@@ -83,22 +84,27 @@ public class AvocatServiceImpl implements AvocatService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public AvocatResponse getAvocatById(Long id) {
-        log.info("Fetching avocat by id={}", id);
-        return avocatMapper.toResponse(findOrThrow(id));
-    }
+@Transactional(readOnly = true)
+public AvocatResponse getAvocatById(Long id) {
+    log.info("Fetching avocat by id={}", id);
+    Avocat avocat = findOrThrow(id);
+    AvocatResponse response = avocatMapper.toResponse(avocat);
+    response.setGereDisponibilites(disponibiliteRepository.existsByAvocat_UserId(avocat.getUserId()));
+    return response;
+}
 
-    @Override
-    @Transactional(readOnly = true)
-    public AvocatResponse getAvocatByUserId(Long userId) {
-        log.info("Fetching avocat by userId={}", userId);
-        Avocat avocat = avocatRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "Avocat introuvable avec userId=" + userId
-                ));
-        return avocatMapper.toResponse(avocat);
-    }
+@Override
+@Transactional(readOnly = true)
+public AvocatResponse getAvocatByUserId(Long userId) {
+    log.info("Fetching avocat by userId={}", userId);
+    Avocat avocat = avocatRepository.findByUserId(userId)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Avocat introuvable avec userId=" + userId
+            ));
+    AvocatResponse response = avocatMapper.toResponse(avocat);
+    response.setGereDisponibilites(disponibiliteRepository.existsByAvocat_UserId(avocat.getUserId()));
+    return response;
+}
 
    @Override
    @Transactional(readOnly = true)
@@ -187,7 +193,7 @@ public AvocatResponse updateStatut(Long id, StatutAvocatEnum statut) {
 private boolean hasAuMoinsUnDocument(Avocat avocat) {
     return isNotBlank(avocat.getDiplome())
         || isNotBlank(avocat.getCarteProfessionnel())
-        || isNotBlank(avocat.getPieceIdentite());
+        || isNotBlank(avocat.getPieceIdentiteRecto());
 }
 
     private Long getCurrentUserId() {
@@ -250,7 +256,7 @@ private int calculateProgression(Avocat avocat) {
     if (isNotBlank(avocat.getDiplome()))              rempli++;
     if (isNotBlank(avocat.getCarteProfessionnel()))   rempli++;
     if (isNotBlank(avocat.getLienAgenda()))           rempli++;
-    if (isNotBlank(avocat.getPieceIdentite()))        rempli++;
+    if (isNotBlank(avocat.getPieceIdentiteRecto()))   rempli++;
     if (isNotBlank(avocat.getTelephone()))            rempli++;
     if (avocat.getStatut() == StatutAvocatEnum.VALIDE) rempli++;
     if (hasAbonnementActif(avocat.getUserId()))        rempli++;
@@ -311,7 +317,7 @@ public String uploadPhoto(Long id, MultipartFile file) {
 
 @Override
 @Transactional
-public String uploadDocument(Long id, DocumentTypeEnum type, MultipartFile file) {
+public String uploadDocument(Long id, DocumentTypeEnum type, TypePieceIdentiteEnum typePieceIdentite, MultipartFile file) {
     log.info("Uploading document type={} for avocat id={}", type, id);
     Avocat avocat = findOrThrow(id);
 
@@ -324,6 +330,12 @@ public String uploadDocument(Long id, DocumentTypeEnum type, MultipartFile file)
     boolean isPdf = contentType != null && contentType.equals("application/pdf");
     if (!isImage && !isPdf) {
         throw new IllegalArgumentException("Le fichier doit être une image ou un PDF");
+    }
+
+    if (type == DocumentTypeEnum.PIECE_IDENTITE_RECTO && typePieceIdentite == null) {
+        throw new IllegalArgumentException(
+            "Le type de pièce d'identité (CNI, PASSEPORT, PERMIS_CONDUIRE) est requis pour le recto"
+        );
     }
 
     try {
@@ -348,9 +360,19 @@ public String uploadDocument(Long id, DocumentTypeEnum type, MultipartFile file)
                 deleteOldDocument(uploadPath, avocat.getDiplome());
                 avocat.setDiplome(documentUrl);
             }
-            case PIECE_IDENTITE -> {
-                deleteOldDocument(uploadPath, avocat.getPieceIdentite());
-                avocat.setPieceIdentite(documentUrl);
+            case PIECE_IDENTITE_RECTO -> {
+                deleteOldDocument(uploadPath, avocat.getPieceIdentiteRecto());
+                avocat.setPieceIdentiteRecto(documentUrl);
+                avocat.setTypePieceIdentite(typePieceIdentite);
+            }
+            case PIECE_IDENTITE_VERSO -> {
+                if (avocat.getTypePieceIdentite() != TypePieceIdentiteEnum.CNI) {
+                    throw new IllegalStateException(
+                        "Le verso n'est requis que pour une CNI. Uploadez d'abord le recto avec typePiece=CNI."
+                    );
+                }
+                deleteOldDocument(uploadPath, avocat.getPieceIdentiteVerso());
+                avocat.setPieceIdentiteVerso(documentUrl);
             }
         }
 

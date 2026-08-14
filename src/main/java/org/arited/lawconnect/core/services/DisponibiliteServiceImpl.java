@@ -31,28 +31,28 @@ public class DisponibiliteServiceImpl implements DisponibiliteService {
     }
 
     @Override
-    @Transactional
-    public List<DisponibiliteDTO> remplacerDisponibilites(Long avocatUserId, List<DisponibiliteCreateRequest> requests) {
-        Avocat avocat = avocatRepository.findById(avocatUserId)
+@Transactional
+public List<DisponibiliteDTO> remplacerDisponibilites(Long avocatUserId, List<DisponibiliteCreateRequest> requests) {
+    Avocat avocat = avocatRepository.findById(avocatUserId)
             .orElseThrow(() -> new EntityNotFoundException("Avocat introuvable : " + avocatUserId));
 
-        // Stratégie simple : on supprime tout et on recrée (le frontend envoie l'état complet à chaque sauvegarde)
-        disponibiliteRepository.deleteByAvocat_UserId(avocatUserId);
+    disponibiliteRepository.deleteByAvocat_UserId(avocatUserId);
+    disponibiliteRepository.flush();  // ← force l'exécution immédiate du DELETE avant les INSERT
 
-        List<Disponibilite> nouvelles = requests.stream().map(req -> {
-            Disponibilite d = new Disponibilite();
-            d.setAvocat(avocat);
-            d.setJour(req.jour());
-            d.setHeureDebut(req.heureDebut());
-            d.setHeureFin(req.heureFin());
-            return d;
-        }).collect(Collectors.toList());
+    List<Disponibilite> nouvelles = requests.stream().map(req -> {
+        Disponibilite d = new Disponibilite();
+        d.setAvocat(avocat);
+        d.setJour(req.jour());
+        d.setHeureDebut(req.heureDebut());
+        d.setHeureFin(req.heureFin());
+        return d;
+    }).collect(Collectors.toList());
 
-        return disponibiliteRepository.saveAll(nouvelles)
+    return disponibiliteRepository.saveAll(nouvelles)
             .stream()
             .map(this::toDTO)
             .collect(Collectors.toList());
-    }
+}
 
     @Override
     @Transactional

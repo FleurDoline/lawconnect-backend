@@ -3,14 +3,6 @@ package org.arited.lawconnect.core.enums;
 public enum DocumentTypeEnum {
     CARTE_PROFESSIONNELLE,
     DIPLOME,
-    PIECE_IDENTITE
+    PIECE_IDENTITE_RECTO,
+    PIECE_IDENTITE_VERSO
 }
-/*
-public enum DocumentTypeEnum {
-    CARTE_PROFESSIONNELLE,
-    DIPLOME,
-    CNI_RECTO,
-    CNI_VERSO,
-    PERMIS_CONDUIRE,
-    PASSEPORT
-}*/

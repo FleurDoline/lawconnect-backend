@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.arited.lawconnect.core.enums.RoleEnum;
 import org.arited.lawconnect.core.enums.StatutAvocatEnum;
+import org.arited.lawconnect.core.enums.TypePieceIdentiteEnum;
 
 @Getter
 @Setter
@@ -34,6 +35,9 @@ public class AvocatResponse {
     private String carteProfessionnel;
     private String diplome;
     private String pieceIdentite;
+    private String pieceIdentiteRecto;
+    private String pieceIdentiteVerso;
+    private TypePieceIdentiteEnum typePieceIdentite;    
     private String bio;
     private BigDecimal tarif;
     private Integer experience;
@@ -43,4 +47,5 @@ public class AvocatResponse {
     private String adresseCabinet;
     private String ville;
     private Integer progression;
+    private boolean gereDisponibilites;
 }

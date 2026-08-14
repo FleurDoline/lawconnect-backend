@@ -35,7 +35,9 @@ public interface AvocatMapper {
     @Mapping(target = "specialites", ignore = true) 
     @Mapping(target = "carteProfessionnel", ignore = true)
     @Mapping(target = "diplome", ignore = true)
-    @Mapping(target = "pieceIdentite", ignore = true)
+    @Mapping(target = "typePieceIdentite", ignore = true)
+    @Mapping(target = "pieceIdentiteRecto", ignore = true)
+    @Mapping(target = "pieceIdentiteVerso", ignore = true)
     @Mapping(target = "bio", ignore = true)
     @Mapping(target = "tarif", ignore = true)
     @Mapping(target = "experience", ignore = true)
@@ -48,7 +50,7 @@ public interface AvocatMapper {
     @Mapping(target = "profilePicture", ignore = true)
     @Mapping(target = "authorities", ignore = true)
 
-    Avocat toEntity(AvocatCreateRequest request);
+Avocat toEntity(AvocatCreateRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "userId", ignore = true)
@@ -70,21 +72,21 @@ public interface AvocatMapper {
     @Mapping(target = "abonnements", ignore = true)
     @Mapping(target = "specialites", ignore = true)
 
-    void updateEntity(AvocatUpdateRequest request, @MappingTarget Avocat avocat);
+void updateEntity(AvocatUpdateRequest request, @MappingTarget Avocat avocat);
 
     @Mapping(target = "id", source = "userId")
     @Mapping(target = "isActive", source = "active")
     @Mapping(target = "specialites", source = "specialites", qualifiedByName = "specialitesToNoms")
-    AvocatResponse toResponse(Avocat avocat);
+AvocatResponse toResponse(Avocat avocat);
 
     @Mapping(target = "id", source = "userId")
     @Mapping(target = "specialites", source = "specialites", qualifiedByName = "specialitesToNoms")
-    AvocatSummaryResponse toSummaryResponse(Avocat avocat);
+AvocatSummaryResponse toSummaryResponse(Avocat avocat);
 
     @Named("specialitesToNoms")
-    default List<String> specialitesToNoms(Set<SpecialiteDroit> specialites) {
-        if (specialites == null) return List.of();
-        return specialites.stream()
+default List<String> specialitesToNoms(Set<SpecialiteDroit> specialites) {
+if (specialites == null) return List.of();
+return specialites.stream()
                 .map(SpecialiteDroit::getNom)
                 .collect(Collectors.toList());
     }
