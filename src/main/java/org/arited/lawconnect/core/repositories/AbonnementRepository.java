@@ -28,4 +28,6 @@ public interface AbonnementRepository extends JpaRepository<Abonnement, Long> {
     Optional<Abonnement> findByAvocatUserIdAndStatut(Long avocatUserId, StatutPaiementEnum statut);
 
     long countByStatut(StatutPaiementEnum statut);
+
+    Optional<Abonnement> findByNotchpayReference(String notchpayReference);
 }

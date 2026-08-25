@@ -299,7 +299,6 @@ public class AbonnementServiceImpl implements AbonnementService {
         }
         return switch (cycle) {
             case MENSUEL -> 1;
-            case TRIMESTRIEL -> 3;
             case ANNUEL -> 12;
         };
     }

@@ -44,4 +44,7 @@ public class Abonnement extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "avocat_id", nullable = false)
     private Avocat avocat;
+
+    @Column(name = "notchpay_reference")
+    private String notchpayReference;
 }

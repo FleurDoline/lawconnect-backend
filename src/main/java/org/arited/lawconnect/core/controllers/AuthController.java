@@ -1,4 +1,4 @@
-package org.arited.lawconnect.core.controller;
+package org.arited.lawconnect.core.controllers;
 
 import org.arited.lawconnect.core.dtos.AuthResponseDTO;
 import org.arited.lawconnect.core.dtos.GoogleLoginRequestDTO;

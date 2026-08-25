@@ -17,4 +17,12 @@ public interface CityRepository extends JpaRepository<EtCity, Long> {
         LIMIT 10
         """, nativeQuery = true)
     List<EtCity> findByCityNameStartingWith(@Param("prefix") String prefix);
+
+    @Query(value = """
+        SELECT * FROM et_city c
+        WHERE c.active = true
+        ORDER BY c.city_name ASC
+        LIMIT 7
+        """, nativeQuery = true)
+    List<EtCity> findTop7ActiveOrderByCityName();
 }

@@ -110,6 +110,34 @@ public class EmailServiceImpl implements EmailService {
      * Méthode générique d'envoi d'e-mail HTML via SMTP (JavaMailSender), avec retry
      * automatique en cas d'échec réseau ponctuel (timeout, connexion instable).
      */
+
+    @Value("${lawconnect.frontend.base-url:http://localhost:4200}")
+    private String frontendBaseUrl;
+
+    @Override
+    public void sendDemandeAvis(String toEmail, String clientNom, String avocatNom, Long consultationId) {
+        String lienAvis = frontendBaseUrl + "/client/avis/" + consultationId;
+
+    String html = """
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: auto;">
+            <h2 style="color:#1a1a2e;">LawConnect</h2>
+            <p>Bonjour %s,</p>
+            <p>Votre consultation avec <strong>Maître %s</strong> est terminée.</p>
+            <p>Votre avis compte : prenez un instant pour partager votre expérience.</p>
+            <div style="text-align:center; margin: 24px 0;">
+                <a href="%s" style="background:#1a1a2e; color:#fff; padding:12px 24px;
+                   text-decoration:none; border-radius:6px; display:inline-block;">
+                   Laisser un avis
+                </a>
+            </div>
+            <p style="color:#666; font-size:13px;">Si le bouton ne fonctionne pas, copiez ce lien : %s</p>
+            <p>L'équipe LawConnect</p>
+        </div>
+        """.formatted(clientNom, avocatNom, lienAvis, lienAvis);
+
+      sendHtmlEmail(toEmail, "LawConnect - Comment s'est passée votre consultation avec Maître " + avocatNom + " ?", html, "demande avis");
+    }
+    
     private void sendHtmlEmail(String toEmail, String subject, String htmlContent, String typeLog) {
         int attempt = 0;
         while (attempt < MAX_RETRIES) {

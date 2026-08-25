@@ -1,4 +1,4 @@
-package org.arited.lawconnect.core.controller;
+package org.arited.lawconnect.core.controllers;
 
 import org.arited.lawconnect.core.dtos.Response.CityResponse;
 import org.arited.lawconnect.core.services.CityService;

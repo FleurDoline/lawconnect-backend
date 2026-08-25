@@ -55,7 +55,8 @@ public class SecurityConfig {
         "/swagger-ui.html",
         "/api-docs/**",
         "/v3/api-docs/**",
-        "/oauth2/**"        
+        "/oauth2/**",
+        "/api/v1/webhooks/**"       
     };
 
     @Bean
@@ -65,10 +66,11 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-    .requestMatchers(PUBLIC_PATHS).permitAll()
-    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/avocats", "/api/v1/avocats/**").permitAll()
-    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/cities/**").permitAll()   
-    .anyRequest().authenticated()
+              .requestMatchers(PUBLIC_PATHS).permitAll()
+              .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/avocats", "/api/v1/avocats/**").permitAll()
+              .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/cities/**").permitAll()  
+              .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/avis/**").permitAll() 
+             .anyRequest().authenticated()
 )
             .exceptionHandling(ex -> ex
                 .defaultAuthenticationEntryPointFor(

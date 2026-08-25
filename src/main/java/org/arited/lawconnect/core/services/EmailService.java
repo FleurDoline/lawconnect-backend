@@ -10,4 +10,5 @@ public interface EmailService {
         LocalDateTime dateRendezVous, String modeConsultation
     );
     void sendOtpEmail(String toEmail, String prenom, String otp);
+    void sendDemandeAvis(String toEmail, String clientNom, String avocatNom, Long consultationId);
 }

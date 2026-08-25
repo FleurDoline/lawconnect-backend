@@ -18,9 +18,11 @@ import java.util.List;
 public class ConsultationSchedulerService {
 
     private final ConsultationRepository consultationRepository;
+    private final EmailService emailService;
 
     // Toutes les heures — passe automatiquement en TERMINEE les
-    // consultations CONFIRMEE dont la date de rendez-vous est dépassée.
+    // consultations CONFIRMEE dont la date de rendez-vous est dépassée,
+    // et en ANNULEE les EN_ATTENTE jamais confirmées.
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
     public void marquerConsultationsTerminees() {
@@ -29,13 +31,27 @@ public class ConsultationSchedulerService {
         List<Consultation> expirees = consultationRepository
             .findByStatutAndDateRendezVousBefore(StatutConsultationEnum.CONFIRMEE, maintenant);
 
-        if (expirees.isEmpty()) {
-            return;
+        if (!expirees.isEmpty()) {
+            expirees.forEach(c -> {
+                c.setStatut(StatutConsultationEnum.TERMINEE);
+                emailService.sendDemandeAvis(
+                    c.getEmail(),
+                    c.getNomComplet(),
+                    c.getAvocat().getFullName(),
+                    c.getId()
+                );
+            });
+            consultationRepository.saveAll(expirees);
+            log.info("{} consultation(s) passée(s) automatiquement à TERMINEE", expirees.size());
         }
 
-        expirees.forEach(c -> c.setStatut(StatutConsultationEnum.TERMINEE));
-        consultationRepository.saveAll(expirees);
+        List<Consultation> nonConfirmees = consultationRepository
+            .findByStatutAndDateRendezVousBefore(StatutConsultationEnum.EN_ATTENTE, maintenant);
 
-        log.info("{} consultation(s) passée(s) automatiquement à TERMINEE", expirees.size());
+        if (!nonConfirmees.isEmpty()) {
+            nonConfirmees.forEach(c -> c.setStatut(StatutConsultationEnum.ANNULEE));
+            consultationRepository.saveAll(nonConfirmees);
+            log.info("{} consultation(s) EN_ATTENTE jamais confirmée(s) passée(s) à ANNULEE", nonConfirmees.size());
+        }
     }
 }

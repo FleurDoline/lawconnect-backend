@@ -17,12 +17,15 @@ public class CityService {
     }
 
     public List<CityResponse> searchCities(String prefix) {
-        if (prefix == null || prefix.trim().isEmpty()) {
-            return List.of();
-        }
-        return cityRepository.findByCityNameStartingWith(prefix.trim())
+      if (prefix == null || prefix.trim().isEmpty()) {
+        return cityRepository.findTop7ActiveOrderByCityName()
                 .stream()
                 .map(c -> new CityResponse(c.getId(), c.getCityName(), c.getCityRegion()))
                 .collect(Collectors.toList());
+      }
+     return cityRepository.findByCityNameStartingWith(prefix.trim())
+            .stream()
+            .map(c -> new CityResponse(c.getId(), c.getCityName(), c.getCityRegion()))
+            .collect(Collectors.toList());
     }
 }
