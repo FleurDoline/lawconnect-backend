@@ -70,7 +70,9 @@ public class SecurityConfig {
               .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/avocats", "/api/v1/avocats/**").permitAll()
               .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/cities/**").permitAll()  
               .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/avis/**").permitAll() 
-             .anyRequest().authenticated()
+              .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/ressources/**").permitAll()
+              .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/webhooks**").permitAll()
+              .anyRequest().authenticated()
 )
             .exceptionHandling(ex -> ex
                 .defaultAuthenticationEntryPointFor(
