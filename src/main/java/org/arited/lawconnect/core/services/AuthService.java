@@ -48,13 +48,13 @@ public class AuthService {
     private final OtpService otpService; 
 
     @Value("${google.client.id}")
-    private String googleClientId;
+    private String  googleClientId;
 
     @Transactional
-public RegisterResponseDTO register(RegisterRequestDTO request) {
-  userRepository.findByEmail(request.email()).ifPresent(existingUser -> {
-    if (existingUser.isEmailVerified()) {
-      throw new AppException("Un compte avec cet email existe déjà", HttpStatus.BAD_REQUEST);
+    public RegisterResponseDTO register(RegisterRequestDTO request) {
+      userRepository.findByEmail(request.email()).ifPresent(existingUser -> {
+      if (existingUser.isEmailVerified()) {
+       throw new AppException("Un compte avec cet email existe déjà", HttpStatus.BAD_REQUEST);
     }
     // Compte fantôme jamais vérifié : on le supprime pour repartir sur une inscription propre
     userRepository.delete(existingUser);

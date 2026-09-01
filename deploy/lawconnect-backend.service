@@ -1,0 +1,16 @@
+[Unit]
+Description=LawConnect Spring Boot Backend
+After=syslog.target network.target
+
+[Service]
+User=merveille
+WorkingDirectory=/home/merveille/lawconnect-backend
+ExecStart=/usr/bin/java -jar /home/merveille/lawconnect-backend/lawconnect-backend-0.0.1-SNAPSHOT.jar
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=/home/merveille/lawconnect-backend/.env
+
+[Install]
+WantedBy=multi-user.target
