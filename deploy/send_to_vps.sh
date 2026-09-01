@@ -28,6 +28,6 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "🔄 3. Redémarrage du service sur le VPS..."
-ssh $VPS_USER@$VPS_IP "systemctl restart lawconnect-backend"
+ssh $VPS_USER@$VPS_IP "sudo systemctl restart lawconnect-backend.service"
 
 echo "✅ Déploiement terminé avec succès !"
